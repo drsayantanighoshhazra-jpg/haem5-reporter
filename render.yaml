@@ -1,0 +1,20 @@
+# One-click demo deployment on Render (render.com › New › Blueprint). Synthetic data only.
+services:
+  - type: web
+    name: haem5-reporter-demo
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    envVars:
+      - key: HAEM5_DEMO
+        value: "true"
+      - key: HAEM5_DATA_KEY
+        generateValue: true
+      - key: HAEM5_JWT_SECRET
+        generateValue: true
+      - key: HAEM5_FIDUCIARY
+        value: "HAEM5 Reporter — demonstration deployment (synthetic data)"
+      - key: HAEM5_DATA_REGION
+        value: "Demo server (Singapore). Production deployments use an Indian region."
