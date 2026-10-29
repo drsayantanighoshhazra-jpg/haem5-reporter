@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAEM5 Reporter</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div id="demo" class="demo-banner" hidden>Demonstration system — synthetic data only. Do not enter real patient information.</div>
+<header class="top"><div class="wrap">
+  <div class="brand"><b>HAEM5 Reporter</b><span id="org">WHO-HAEM5 haematopathology reporting</span></div>
+  <nav class="tabs" id="tabs" hidden></nav>
+  <div class="row" id="who" hidden></div>
+</div></header>
+<main class="wrap" id="view" aria-live="polite"></main>
+<div class="toast" id="toast" role="status"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

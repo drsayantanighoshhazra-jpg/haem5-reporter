@@ -1,0 +1,78 @@
+{
+  "format": "haem5-cell-v1",
+  "classes": [
+    "blast",
+    "promyelocyte",
+    "myelocyte",
+    "metamyelocyte",
+    "band_neutrophil",
+    "segmented_neutrophil",
+    "eosinophil",
+    "basophil",
+    "monocyte",
+    "lymphocyte",
+    "atypical_lymphocyte",
+    "erythroblast",
+    "platelet",
+    "smudge",
+    "plasma_cell",
+    "hairy_cell",
+    "immature_lymphocyte",
+    "proerythroblast",
+    "artefact"
+  ],
+  "present_classes": [
+    "blast",
+    "promyelocyte",
+    "myelocyte",
+    "metamyelocyte",
+    "band_neutrophil",
+    "segmented_neutrophil",
+    "eosinophil",
+    "basophil",
+    "monocyte",
+    "lymphocyte",
+    "atypical_lymphocyte",
+    "erythroblast",
+    "platelet",
+    "smudge",
+    "plasma_cell",
+    "hairy_cell",
+    "immature_lymphocyte",
+    "proerythroblast",
+    "artefact"
+  ],
+  "img_size": 224,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "input_name": "input",
+  "layout": "NCHW",
+  "resize": "direct",
+  "model": "efficientnet_b0",
+  "trained_on": [
+    "aml-cytomorphology-lmu",
+    "microscopic-peripheral-blood-cell-images",
+    "bone-marrow-cell-classification"
+  ],
+  "n_train": 30649,
+  "test": {
+    "accuracy": 0.8427222898903776,
+    "macro_f1": 0.7507345526025981
+  },
+  "thresholds": {
+    "blast": 0.15
+  },
+  "test_blast": {
+    "threshold": 0.15,
+    "sensitivity": 0.873,
+    "ppv": 0.737
+  }
+}

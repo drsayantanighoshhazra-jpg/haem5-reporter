@@ -1,0 +1,1784 @@
+<title>HAEM5 Reporter</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: lab-bench workbench — section rail | case form | live WHO-HAEM5 panel; stacks on phones.
+   Palette drawn from a Romanowsky-stained film: azure-violet nuclei on a pale eosin-tinted ground. */
+:root{
+  --bg:#f6f4f7; --surface:#ffffff; --sunken:#efecf2; --line:#dcd6e2; --fg:#1d1a24; --muted:#615a6d;
+  --accent:#5b3fa0; --accent-soft:#ece6f8; --eosin:#b8456a; --eosin-soft:#f8e7ee;
+  --ok:#1f7a4d; --ok-soft:#e2f3ea; --warn:#9a6400; --warn-soft:#fbf0d9; --info:#2f5f8f; --info-soft:#e3edf7;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-body:"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r:8px; --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141219; --surface:#1d1a24; --sunken:#17151d; --line:#352f40; --fg:#ece8f2; --muted:#a59db3;
+  --accent:#b39cf0; --accent-soft:#2a2340; --eosin:#f08bab; --eosin-soft:#3a1f2a;
+  --ok:#6fd3a0; --ok-soft:#173326; --warn:#f0c060; --warn-soft:#3a2d12; --info:#8dbcef; --info-soft:#18283a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141219; --surface:#1d1a24; --sunken:#17151d; --line:#352f40; --fg:#ece8f2; --muted:#a59db3;
+  --accent:#b39cf0; --accent-soft:#2a2340; --eosin:#f08bab; --eosin-soft:#3a1f2a;
+  --ok:#6fd3a0; --ok-soft:#173326; --warn:#f0c060; --warn-soft:#3a2d12; --info:#8dbcef; --info-soft:#18283a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;padding-block:10px;max-width:1500px;margin:0 auto}
+.brand{display:flex;flex-direction:column;line-height:1.1;margin-right:auto;min-width:0}
+.brand b{font:600 22px/1.1 var(--f-display);letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.layout{display:grid;grid-template-columns:200px minmax(0,1fr) 380px;gap:var(--s5);max-width:1500px;margin:0 auto;padding-block:var(--s5)}
+nav.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);align-self:start;display:flex;flex-direction:column;gap:2px}
+nav.rail button{text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+nav.rail button .n{font:12px var(--f-mono);color:var(--muted);min-width:1.6em}
+nav.rail button.on{background:var(--accent-soft);color:var(--fg);font-weight:600}
+nav.rail button.on .n{color:var(--accent)}
+main{min-width:0}
+section.pane{display:none}
+section.pane.on{display:block}
+h2{font:600 26px/1.2 var(--f-display);margin:0 0 4px;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 var(--s4);max-width:68ch}
+fieldset{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin:0 0 var(--s4);padding:var(--s4)}
+legend{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:var(--s3) var(--s4)}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f label{font-size:13px;font-weight:500}
+.f .u{font:12px var(--f-mono);color:var(--muted)}
+.f input[type=number],.f input[type=text],.f select,.f textarea{border:1px solid var(--line);background:var(--sunken);border-radius:6px;padding:6px 8px;width:100%;min-width:0}
+.f input[type=number]{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.f textarea{min-height:64px;resize:vertical}
+.f.wide{grid-column:1/-1}
+.hint{font-size:12px;color:var(--muted)}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer;padding:3px 0}
+.chk input{margin-top:3px;accent-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:13px;cursor:pointer;background:var(--sunken);user-select:none}
+.chip input{accent-color:var(--accent);margin:0}
+.chip:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
+.chip.mono{font-family:var(--f-mono);font-size:12.5px}
+/* live panel */
+aside.live{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);align-self:start;max-height:calc(100vh - 100px);overflow:auto;display:flex;flex-direction:column;gap:var(--s3)}
+.panelhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.panelhead h3{font:600 19px var(--f-display);margin:0}
+.panelhead span{font-size:12px;color:var(--muted)}
+.cand{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:var(--s3);display:flex;flex-direction:column;gap:6px}
+.cand.top{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.cand .fam{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cand .ent{font-weight:600;line-height:1.3}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pill.met{background:var(--ok-soft);color:var(--ok)}
+.pill.prob{background:var(--warn-soft);color:var(--warn)}
+.pill.cons{background:var(--info-soft);color:var(--info)}
+.cand ul{margin:0;padding-left:18px;font-size:13px}
+.cand ul.miss li{color:var(--warn)}
+.cand .notes{font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}
+.warnbox{background:var(--warn-soft);color:var(--fg);border-radius:var(--r);padding:var(--s3);font-size:13px;border:1px solid var(--line)}
+.disclaim{font-size:12px;color:var(--muted);border-left:3px solid var(--eosin);padding-left:10px}
+/* counter */
+.cnt-top{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;margin-bottom:var(--s3)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 12px;cursor:pointer;font-size:14px}
+.seg button.on{background:var(--accent);color:var(--surface)}
+.total{font:600 28px var(--f-mono);font-variant-numeric:tabular-nums}
+.total small{font:13px var(--f-body);color:var(--muted)}
+.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.key{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 10px;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:baseline;text-align:left}
+.key:active{transform:translateY(1px)}
+.key .kb{font:600 11px var(--f-mono);border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--muted);grid-row:span 2}
+.key .nm{font-size:13.5px;font-weight:500}
+.key .ct{font:600 17px var(--f-mono);font-variant-numeric:tabular-nums;grid-row:span 2;align-self:center}
+.key .pc{font:12px var(--f-mono);color:var(--muted)}
+.key.blasty{border-color:var(--eosin);background:var(--eosin-soft)}
+.key.excl .pc::after{content:" (not in %)"}
+.bar{height:6px;background:var(--sunken);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.summary-row{display:flex;flex-wrap:wrap;gap:var(--s4);margin-top:var(--s3);font-size:14px}
+.summary-row b{font-family:var(--f-mono)}
+.ai-drop{border:2px dashed var(--line);border-radius:var(--r);padding:var(--s4);text-align:center;color:var(--muted);background:var(--sunken)}
+.ai-drop.over{border-color:var(--accent);color:var(--fg)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:var(--s3)}
+.th{border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:5px;display:flex;flex-direction:column;gap:4px;font-size:12px}
+.th img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;max-width:100%}
+.th.low{border-color:var(--warn);background:var(--warn-soft)}
+.th select{font-size:12px;padding:2px;border:1px solid var(--line);border-radius:4px;background:var(--sunken)}
+.th .cf{font-family:var(--f-mono);color:var(--muted)}
+.status{font-size:13px;padding:8px 10px;border-radius:6px;background:var(--sunken);margin-top:var(--s3)}
+.status.err{background:var(--warn-soft)}
+/* report */
+.report{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s5);font:14px/1.55 var(--f-body)}
+.report textarea{width:100%;min-height:620px;border:0;background:transparent;font:13.5px/1.6 var(--f-mono);resize:vertical;outline:none}
+.dxline{font:600 20px/1.3 var(--f-display);color:var(--accent);margin:0 0 6px}
+.catalog-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.catalog-row input{flex:1 1 260px;min-width:0;border:1px solid var(--line);background:var(--sunken);border-radius:6px;padding:7px 9px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:var(--s3) 0}
+.tag-ex{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--eosin-soft);color:var(--eosin);border-radius:4px;padding:2px 6px;margin-left:6px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+.toast.on{opacity:1}
+.confirm{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+@media (max-width:1180px){.layout{grid-template-columns:180px minmax(0,1fr)} aside.live{grid-column:1/-1;position:static;max-height:none}}
+@media (max-width:760px){
+  .layout{grid-template-columns:minmax(0,1fr);gap:var(--s4)}
+  nav.rail{position:static;flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:4px}
+  nav.rail button{white-space:nowrap;flex:0 0 auto}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><b>HAEM5 Reporter</b><span>WHO-HAEM5 (2022) haematolymphoid reporting workbench · decision support</span></div>
+  <span id="exTag" class="tag-ex" hidden>Example case</span>
+  <select id="exampleSel" class="btn sm" aria-label="Load example case">
+    <option value="">Load example…</option>
+  </select>
+  <span id="newWrap"><button id="newCase" class="btn sm">New case</button></span>
+  <button id="goReport" class="btn primary sm">Report</button>
+</div></header>
+
+<div class="wrap"><div class="layout">
+  <nav class="rail" id="rail" aria-label="Sections"></nav>
+  <main id="main"></main>
+  <aside class="live" id="live" aria-live="polite"></aside>
+</div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>window.HAEM5_BUILTIN_MODEL = {"parts": ["model/cell_model.part1.bin.b64.txt", "model/cell_model.part2.bin.b64.txt"], "size": 16102225, "encoding": "base64", "labels": {"format": "haem5-cell-v1", "classes": ["blast", "promyelocyte", "myelocyte", "metamyelocyte", "band_neutrophil", "segmented_neutrophil", "eosinophil", "basophil", "monocyte", "lymphocyte", "atypical_lymphocyte", "erythroblast", "platelet", "smudge", "plasma_cell", "hairy_cell", "immature_lymphocyte", "proerythroblast", "artefact"], "present_classes": ["blast", "promyelocyte", "myelocyte", "metamyelocyte", "band_neutrophil", "segmented_neutrophil", "eosinophil", "basophil", "monocyte", "lymphocyte", "atypical_lymphocyte", "erythroblast", "platelet", "smudge", "plasma_cell", "hairy_cell", "immature_lymphocyte", "proerythroblast", "artefact"], "img_size": 224, "mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225], "input_name": "input", "layout": "NCHW", "resize": "direct", "model": "efficientnet_b0", "trained_on": ["aml-cytomorphology-lmu", "microscopic-peripheral-blood-cell-images", "bone-marrow-cell-classification"], "n_train": 30649, "test": {"accuracy": 0.8427222898903776, "macro_f1": 0.7507345526025981}, "thresholds": {"blast": 0.15}, "test_blast": {"threshold": 0.15, "sensitivity": 0.873, "ppv": 0.737}}};</script><script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.wasm.min.js"></script>
+<script>
+/* WHO-HAEM5 rule engine — decision support only.
+ * Encodes diagnostic criteria from:
+ *  Khoury JD et al. Leukemia 2022;36:1703–19 (myeloid & histiocytic/dendritic)
+ *  Alaggio R et al. Leukemia 2022;36:1720–48 (lymphoid)
+ * Plasma cell rules follow IMWG criteria as adopted by WHO-HAEM5.
+ * The final diagnosis is always the reporting pathologist's.
+ */
+(function (root) {
+  "use strict";
+
+  // ---------- catalogue of WHO-HAEM5 entities (for picker & report) ----------
+  const CATALOG = {
+    "Myeloid precursor lesions": [
+      "Clonal haematopoiesis of indeterminate potential (CHIP)",
+      "Clonal cytopenia of undetermined significance (CCUS)"],
+    "Myeloproliferative neoplasms": [
+      "Chronic myeloid leukaemia, chronic phase", "Chronic myeloid leukaemia, blast phase",
+      "Polycythaemia vera", "Essential thrombocythaemia",
+      "Primary myelofibrosis, early/prefibrotic stage", "Primary myelofibrosis, overt fibrotic stage",
+      "Chronic neutrophilic leukaemia", "Chronic eosinophilic leukaemia",
+      "Juvenile myelomonocytic leukaemia", "Myeloproliferative neoplasm, not otherwise specified"],
+    "Mastocytosis": [
+      "Cutaneous mastocytosis", "Bone marrow mastocytosis", "Indolent systemic mastocytosis",
+      "Smouldering systemic mastocytosis", "Aggressive systemic mastocytosis",
+      "Systemic mastocytosis with an associated haematological neoplasm", "Mast cell leukaemia",
+      "Mast cell sarcoma"],
+    "Myelodysplastic neoplasms": [
+      "MDS with low blasts and isolated 5q deletion (MDS-5q)",
+      "MDS with low blasts and SF3B1 mutation (MDS-SF3B1)",
+      "MDS with low blasts and ring sideroblasts",
+      "MDS with biallelic TP53 inactivation (MDS-biTP53)",
+      "MDS with low blasts (MDS-LB)", "MDS, hypoplastic (MDS-h)",
+      "MDS with increased blasts-1 (MDS-IB1)", "MDS with increased blasts-2 (MDS-IB2)",
+      "MDS with fibrosis (MDS-f)",
+      "Childhood MDS with low blasts (cMDS-LB)", "Childhood MDS with increased blasts (cMDS-IB)"],
+    "Myelodysplastic/myeloproliferative neoplasms": [
+      "Chronic myelomonocytic leukaemia", "MDS/MPN with neutrophilia",
+      "MDS/MPN with SF3B1 mutation and thrombocytosis",
+      "MDS/MPN with ring sideroblasts and thrombocytosis",
+      "MDS/MPN, not otherwise specified"],
+    "AML with defining genetic abnormalities": [
+      "Acute promyelocytic leukaemia with PML::RARA fusion", "AML with RUNX1::RUNX1T1 fusion",
+      "AML with CBFB::MYH11 fusion", "AML with DEK::NUP214 fusion", "AML with RBM15::MRTFA fusion",
+      "AML with BCR::ABL1 fusion", "AML with KMT2A rearrangement", "AML with MECOM rearrangement",
+      "AML with NUP98 rearrangement", "AML with NPM1 mutation", "AML with CEBPA mutation",
+      "AML, myelodysplasia-related", "AML with other defined genetic alterations"],
+    "AML defined by differentiation": [
+      "AML with minimal differentiation", "AML without maturation", "AML with maturation",
+      "Acute basophilic leukaemia", "Acute myelomonocytic leukaemia", "Acute monocytic leukaemia",
+      "Acute erythroid leukaemia", "Acute megakaryoblastic leukaemia"],
+    "Myeloid sarcoma": ["Myeloid sarcoma"],
+    "Secondary myeloid neoplasms": [
+      "Myeloid neoplasm post cytotoxic therapy",
+      "Myeloid neoplasm associated with germline predisposition",
+      "Transient abnormal myelopoiesis associated with Down syndrome",
+      "Myeloid leukaemia associated with Down syndrome"],
+    "Myeloid/lymphoid neoplasms with eosinophilia and tyrosine kinase gene fusions": [
+      "M/LN-eo with PDGFRA rearrangement", "M/LN-eo with PDGFRB rearrangement",
+      "M/LN-eo with FGFR1 rearrangement", "M/LN-eo with JAK2 rearrangement",
+      "M/LN-eo with FLT3 rearrangement", "M/LN-eo with ETV6::ABL1 fusion",
+      "M/LN-eo with other tyrosine kinase fusions"],
+    "Acute leukaemias of mixed or ambiguous lineage": [
+      "Mixed-phenotype acute leukaemia with BCR::ABL1 fusion",
+      "Mixed-phenotype acute leukaemia with KMT2A rearrangement",
+      "Acute leukaemia of ambiguous lineage with ZNF384 rearrangement",
+      "Acute leukaemia of ambiguous lineage with BCL11B rearrangement",
+      "Mixed-phenotype acute leukaemia, B/myeloid", "Mixed-phenotype acute leukaemia, T/myeloid",
+      "Mixed-phenotype acute leukaemia, rare types",
+      "Acute leukaemia of ambiguous lineage, not otherwise specified",
+      "Acute undifferentiated leukaemia"],
+    "Histiocytic/dendritic cell neoplasms": [
+      "Mature plasmacytoid dendritic cell proliferation associated with myeloid neoplasm",
+      "Blastic plasmacytoid dendritic cell neoplasm", "Langerhans cell histiocytosis",
+      "Langerhans cell sarcoma", "Indeterminate dendritic cell tumour",
+      "Interdigitating dendritic cell sarcoma", "Juvenile xanthogranuloma",
+      "Erdheim-Chester disease", "Rosai-Dorfman disease", "ALK-positive histiocytosis",
+      "Histiocytic sarcoma"],
+    "Precursor B-cell neoplasms": [
+      "B-lymphoblastic leukaemia/lymphoma, NOS",
+      "B-lymphoblastic leukaemia/lymphoma with high hyperdiploidy",
+      "B-lymphoblastic leukaemia/lymphoma with hypodiploidy",
+      "B-lymphoblastic leukaemia/lymphoma with iAMP21",
+      "B-lymphoblastic leukaemia/lymphoma with BCR::ABL1 fusion",
+      "B-lymphoblastic leukaemia/lymphoma with BCR::ABL1-like features",
+      "B-lymphoblastic leukaemia/lymphoma with KMT2A rearrangement",
+      "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1 fusion",
+      "B-lymphoblastic leukaemia/lymphoma with ETV6::RUNX1-like features",
+      "B-lymphoblastic leukaemia/lymphoma with TCF3::PBX1 fusion",
+      "B-lymphoblastic leukaemia/lymphoma with IGH::IL3 fusion",
+      "B-lymphoblastic leukaemia/lymphoma with TCF3::HLF fusion",
+      "B-lymphoblastic leukaemia/lymphoma with other defined genetic abnormalities"],
+    "Mature B-cell neoplasms": [
+      "Monoclonal B-cell lymphocytosis", "Chronic lymphocytic leukaemia/small lymphocytic lymphoma",
+      "Hairy cell leukaemia", "Splenic marginal zone lymphoma",
+      "Splenic diffuse red pulp small B-cell lymphoma",
+      "Splenic B-cell lymphoma/leukaemia with prominent nucleoli", "Lymphoplasmacytic lymphoma",
+      "Extranodal marginal zone lymphoma of mucosa-associated lymphoid tissue",
+      "Primary cutaneous marginal zone lymphoma", "Nodal marginal zone lymphoma",
+      "Paediatric marginal zone lymphoma", "In situ follicular B-cell neoplasm", "Follicular lymphoma",
+      "Paediatric-type follicular lymphoma", "Duodenal-type follicular lymphoma",
+      "Primary cutaneous follicle centre lymphoma", "In situ mantle cell neoplasm",
+      "Mantle cell lymphoma", "Leukaemic non-nodal mantle cell lymphoma",
+      "Transformations of indolent B-cell lymphomas", "Diffuse large B-cell lymphoma, NOS",
+      "T-cell/histiocyte-rich large B-cell lymphoma",
+      "Diffuse large B-cell lymphoma/high grade B-cell lymphoma with MYC and BCL2 rearrangements",
+      "ALK-positive large B-cell lymphoma", "Large B-cell lymphoma with IRF4 rearrangement",
+      "High-grade B-cell lymphoma with 11q aberrations", "Lymphomatoid granulomatosis",
+      "EBV-positive diffuse large B-cell lymphoma",
+      "Diffuse large B-cell lymphoma associated with chronic inflammation",
+      "Fibrin-associated large B-cell lymphoma", "Fluid overload-associated large B-cell lymphoma",
+      "Plasmablastic lymphoma", "Primary large B-cell lymphoma of immune-privileged sites",
+      "Primary cutaneous diffuse large B-cell lymphoma, leg type",
+      "Intravascular large B-cell lymphoma", "Primary mediastinal large B-cell lymphoma",
+      "Mediastinal grey zone lymphoma", "High-grade B-cell lymphoma, NOS", "Burkitt lymphoma",
+      "Primary effusion lymphoma", "KSHV/HHV8-positive diffuse large B-cell lymphoma",
+      "KSHV/HHV8-positive germinotropic lymphoproliferative disorder",
+      "Hyperplasias arising in immune deficiency/dysregulation",
+      "Polymorphic lymphoproliferative disorders arising in immune deficiency/dysregulation",
+      "EBV-positive mucocutaneous ulcer", "Lymphomas arising in immune deficiency/dysregulation",
+      "Inborn error of immunity-associated lymphoid proliferations and lymphomas"],
+    "Hodgkin lymphoma": ["Classic Hodgkin lymphoma", "Nodular lymphocyte predominant Hodgkin lymphoma"],
+    "Plasma cell neoplasms and other diseases with paraproteins": [
+      "Cold agglutinin disease", "IgM monoclonal gammopathy of undetermined significance",
+      "Non-IgM monoclonal gammopathy of undetermined significance",
+      "Monoclonal gammopathy of renal significance",
+      "Immunoglobulin-related (AL) amyloidosis", "Monoclonal immunoglobulin deposition disease",
+      "Mu heavy chain disease", "Gamma heavy chain disease", "Alpha heavy chain disease",
+      "Plasmacytoma", "Plasma cell myeloma", "POEMS syndrome", "TEMPI syndrome", "AESOP syndrome"],
+    "Precursor T-cell neoplasms": [
+      "T-lymphoblastic leukaemia/lymphoma, NOS",
+      "Early T-precursor lymphoblastic leukaemia/lymphoma"],
+    "Mature T-cell and NK-cell neoplasms": [
+      "T-prolymphocytic leukaemia", "T-large granular lymphocytic leukaemia",
+      "NK-large granular lymphocytic leukaemia", "Adult T-cell leukaemia/lymphoma",
+      "Sézary syndrome", "Aggressive NK-cell leukaemia",
+      "Primary cutaneous CD4-positive small or medium T-cell lymphoproliferative disorder",
+      "Primary cutaneous acral CD8-positive lymphoproliferative disorder", "Mycosis fungoides",
+      "Lymphomatoid papulosis", "Primary cutaneous anaplastic large cell lymphoma",
+      "Subcutaneous panniculitis-like T-cell lymphoma",
+      "Primary cutaneous gamma/delta T-cell lymphoma",
+      "Primary cutaneous CD8-positive aggressive epidermotropic cytotoxic T-cell lymphoma",
+      "Primary cutaneous peripheral T-cell lymphoma, NOS",
+      "Indolent T-cell lymphoma of the gastrointestinal tract",
+      "Indolent NK-cell lymphoproliferative disorder of the gastrointestinal tract",
+      "Enteropathy-associated T-cell lymphoma",
+      "Monomorphic epitheliotropic intestinal T-cell lymphoma", "Intestinal T-cell lymphoma, NOS",
+      "Hepatosplenic T-cell lymphoma", "ALK-positive anaplastic large cell lymphoma",
+      "ALK-negative anaplastic large cell lymphoma",
+      "Breast implant-associated anaplastic large cell lymphoma",
+      "Nodal T-follicular helper cell lymphoma, angioimmunoblastic-type",
+      "Nodal T-follicular helper cell lymphoma, follicular-type",
+      "Nodal T-follicular helper cell lymphoma, NOS", "Peripheral T-cell lymphoma, NOS",
+      "EBV-positive nodal T- and NK-cell lymphoma", "Extranodal NK/T-cell lymphoma",
+      "Severe mosquito bite allergy", "Hydroa vacciniforme lymphoproliferative disorder",
+      "Systemic chronic active EBV disease", "Systemic EBV-positive T-cell lymphoma of childhood"],
+    "Stroma-derived neoplasms of lymphoid tissues": [
+      "Follicular dendritic cell sarcoma", "EBV-positive inflammatory follicular dendritic cell sarcoma",
+      "Fibroblastic reticular cell tumour"]
+  };
+
+  const AML_FUSIONS = [
+    ["PML::RARA", "Acute promyelocytic leukaemia with PML::RARA fusion"],
+    ["RUNX1::RUNX1T1", "AML with RUNX1::RUNX1T1 fusion"],
+    ["CBFB::MYH11", "AML with CBFB::MYH11 fusion"],
+    ["DEK::NUP214", "AML with DEK::NUP214 fusion"],
+    ["RBM15::MRTFA", "AML with RBM15::MRTFA fusion"],
+    ["KMT2A", "AML with KMT2A rearrangement"],
+    ["MECOM", "AML with MECOM rearrangement"],
+    ["NUP98", "AML with NUP98 rearrangement"]];
+  const TK_FUSIONS = [
+    ["PDGFRA", "M/LN-eo with PDGFRA rearrangement"], ["PDGFRB", "M/LN-eo with PDGFRB rearrangement"],
+    ["FGFR1", "M/LN-eo with FGFR1 rearrangement"], ["JAK2r", "M/LN-eo with JAK2 rearrangement"],
+    ["FLT3r", "M/LN-eo with FLT3 rearrangement"], ["ETV6::ABL1", "M/LN-eo with ETV6::ABL1 fusion"],
+    ["otherTK", "M/LN-eo with other tyrosine kinase fusions"]];
+  const MR_CYTO = {
+    complex: "Complex karyotype (≥3 abnormalities)", del5q: "5q deletion / loss of 5q",
+    mono7: "Monosomy 7, 7q deletion or loss of 7q", del11q: "11q deletion",
+    del12p: "12p deletion / loss of 12p", mono13: "Monosomy 13 or 13q deletion",
+    del17p: "17p deletion / loss of 17p", i17q: "Isochromosome 17q", idicX: "idic(X)(q13)"};
+  const MR_GENES = ["ASXL1", "BCOR", "EZH2", "SF3B1", "SRSF2", "STAG2", "U2AF1", "ZRSR2"];
+
+  // ---------- helpers ----------
+  const num = v => (v === "" || v === null || v === undefined || isNaN(+v)) ? null : +v;
+  const has = (arr, k) => Array.isArray(arr) && arr.includes(k);
+  const known = v => v !== null && v !== undefined && v !== "";
+
+  function derive(c) {
+    const d = {};
+    d.pb = num(c.pbBlast); d.bm = num(c.bmBlast);
+    d.maxBlast = Math.max(d.pb ?? -1, d.bm ?? -1);
+    d.blastKnown = d.pb !== null || d.bm !== null;
+    d.hb = num(c.hb); d.anc = num(c.anc); d.plt = num(c.plt); d.wbc = num(c.wbc);
+    d.amc = num(c.amc); d.monoPct = num(c.monoPct); d.aec = num(c.aec); d.age = num(c.age);
+    const male = c.sex === "M";
+    d.anaemia = d.hb !== null && d.hb < (male ? 13 : 12);
+    d.neutropenia = d.anc !== null && d.anc < 1.8;
+    d.thrombocytopenia = d.plt !== null && d.plt < 150;
+    d.cytopenia = d.anaemia || d.neutropenia || d.thrombocytopenia;
+    d.cytopeniaList = [d.anaemia && "anaemia", d.neutropenia && "neutropenia", d.thrombocytopenia && "thrombocytopenia"].filter(Boolean);
+    d.dysplasia = !!(c.dysEry || c.dysGran || c.dysMega);
+    d.dysList = [c.dysEry && "erythroid", c.dysGran && "granulocytic", c.dysMega && "megakaryocytic"].filter(Boolean);
+    d.fus = c.fusions || [];
+    d.mrCyto = Object.keys(MR_CYTO).filter(k => has(c.cyto, k));
+    d.mrGenes = MR_GENES.filter(g => has(c.mrGenes, g) || (g === "SF3B1" && num(c.sf3b1VAF) > 0));
+    const tp53n = num(c.tp53Count) || 0, tp53v = num(c.tp53VAF);
+    d.tp53 = tp53n > 0;
+    d.biTP53 = tp53n >= 2 || (tp53n === 1 && (!!c.tp53CopyLoss || (tp53v !== null && tp53v >= 50)));
+    d.sf3b1 = num(c.sf3b1VAF) > 0 || has(c.mrGenes, "SF3B1");
+    d.driver = !!(c.jak2 || c.jak2ex12 || c.calr || c.mpl);
+    d.abnKaryo = d.mrCyto.length > 0 || has(c.cyto, "otherAbn") || d.fus.length > 0;
+    d.anyMut = d.tp53 || d.mrGenes.length > 0 || d.driver || !!c.npm1 || !!c.cebpa || !!c.csf3r ||
+      !!c.kit || !!c.ras || (num(c.otherMutVAF) ?? 0) >= 2;
+    d.clonal = d.abnKaryo || d.anyMut;
+    d.child = d.age !== null && d.age < 18;
+    d.lowBlast = d.blastKnown && (d.bm ?? 0) < 5 && (d.pb ?? 0) < 2;
+    d.geneticsDone = !!(c.geneticsDone || d.fus.length || (c.cyto || []).length || (c.mrGenes || []).length || c.npm1 || c.cebpa ||
+      known(c.tp53Count) || known(c.sf3b1VAF) || c.karyotype || c.ngsText || c.jak2 || c.calr || c.mpl);
+    d.lineageKnown = (c.flowLineage && c.flowLineage !== "unknown") || !!c.auer || c.mpoPos === "yes";
+    return d;
+  }
+
+  function cand(entity, family, status, met, missing, notes) {
+    return { entity, family, status, met: met || [], missing: missing || [], notes: notes || [] };
+  }
+
+  // ---------- main ----------
+  function classify(c) {
+    c = c || {};
+    const d = derive(c);
+    const out = [], warn = [], qual = [];
+    const push = x => out.push(x);
+    const blastTxt = `blasts PB ${d.pb ?? "—"}% / BM ${d.bm ?? "—"}%`;
+
+    if (!d.blastKnown) warn.push("Blast percentage not entered — most myeloid categories depend on it (count blasts + blast equivalents; promonocytes are blast equivalents in AML/CMML, abnormal promyelocytes in APL).");
+
+    // qualifiers (apply to myeloid diagnoses)
+    if (c.hxCytotoxic) qual.push("post cytotoxic therapy");
+    if (c.germline) qual.push(`associated with germline predisposition${typeof c.germline === "string" && c.germline !== "true" ? " (" + c.germline + ")" : ""}`);
+
+    const lineage = c.flowLineage || "unknown";
+    const acute = d.maxBlast >= 20;
+
+    // ---- Down syndrome ----
+    if (c.downSyndrome && d.age !== null && d.age <= 4 && (c.gata1 || c.megaMarkers)) {
+      push(cand(d.age < 0.25 ? "Transient abnormal myelopoiesis associated with Down syndrome" : "Myeloid leukaemia associated with Down syndrome",
+        "Secondary myeloid neoplasms", "probable", ["Down syndrome", "age ≤4 years", c.gata1 ? "GATA1 mutation" : "megakaryoblastic phenotype"], [],
+        ["TAM: neonatal/infant presentation; ML-DS: usually within first 5 years. Confirm GATA1 mutation."]));
+    }
+
+    // ---- acute leukaemia of mixed/ambiguous lineage, ALL ----
+    if (acute && ["B/myeloid", "T/myeloid", "MPAL-other", "undiff", "ambiguous"].includes(lineage)) {
+      let e, met = [blastTxt, "lineage: " + lineage];
+      if (has(d.fus, "BCR::ABL1") && lineage !== "undiff") e = "Mixed-phenotype acute leukaemia with BCR::ABL1 fusion";
+      else if (has(d.fus, "KMT2A") && lineage !== "undiff") e = "Mixed-phenotype acute leukaemia with KMT2A rearrangement";
+      else if (has(d.fus, "ZNF384")) e = "Acute leukaemia of ambiguous lineage with ZNF384 rearrangement";
+      else if (has(d.fus, "BCL11B")) e = "Acute leukaemia of ambiguous lineage with BCL11B rearrangement";
+      else e = { "B/myeloid": "Mixed-phenotype acute leukaemia, B/myeloid", "T/myeloid": "Mixed-phenotype acute leukaemia, T/myeloid",
+        "MPAL-other": "Mixed-phenotype acute leukaemia, rare types", "undiff": "Acute undifferentiated leukaemia",
+        "ambiguous": "Acute leukaemia of ambiguous lineage, not otherwise specified" }[lineage];
+      push(cand(e, "Acute leukaemias of mixed or ambiguous lineage", "criteria met", met, [],
+        ["Lineage assignment per WHO-HAEM5 MPAL criteria (MPO by flow/cytochemistry or monocytic differentiation; cyCD3; strong CD19 with CD79a/cyCD22/CD10). Exclude AML-defining genetic abnormalities, AML-MR, MN-pCT and CML-BP."]));
+    }
+    if (acute && lineage === "B") {
+      const map = { hyperdiploid: "with high hyperdiploidy", hypodiploid: "with hypodiploidy", iAMP21: "with iAMP21",
+        "BCR::ABL1": "with BCR::ABL1 fusion", "BCR::ABL1-like": "with BCR::ABL1-like features", KMT2A: "with KMT2A rearrangement",
+        "ETV6::RUNX1": "with ETV6::RUNX1 fusion", "ETV6::RUNX1-like": "with ETV6::RUNX1-like features", "TCF3::PBX1": "with TCF3::PBX1 fusion",
+        "IGH::IL3": "with IGH::IL3 fusion", "TCF3::HLF": "with TCF3::HLF fusion", other: "with other defined genetic abnormalities" };
+      let g = c.ballGenetic || (has(d.fus, "BCR::ABL1") ? "BCR::ABL1" : has(d.fus, "KMT2A") ? "KMT2A" : "");
+      if (has(d.fus, "BCR::ABL1") && c.hxCML) {
+        push(cand("Chronic myeloid leukaemia, blast phase (lymphoid)", "Myeloproliferative neoplasms", "criteria met",
+          ["BCR::ABL1", "history of CML", "lymphoblasts " + blastTxt], [], ["Increased lymphoblasts in a CML patient define blast phase even below 20%."]));
+      } else {
+        push(cand("B-lymphoblastic leukaemia/lymphoma, " + (map[g] || "NOS"), "Precursor B-cell neoplasms", "criteria met",
+          [blastTxt, "B-lineage blasts"], g ? [] : ["Genetic subgroup (karyotype/FISH/molecular) not entered"],
+          ["WHO-HAEM5 recommends avoiding a diagnosis of B-ALL with <20% bone marrow blasts. For BCR::ABL1, distinguish lymphoid blast phase of CML (check for history/MPN features)."]));
+      }
+    }
+    if (acute && lineage === "T") {
+      push(cand(c.etp ? "Early T-precursor lymphoblastic leukaemia/lymphoma" : "T-lymphoblastic leukaemia/lymphoma, NOS",
+        "Precursor T-cell neoplasms", "criteria met", [blastTxt, "T-lineage blasts (cyCD3)"], [],
+        ["ETP immunophenotype: CD7+, CD1a−, CD8−, CD5 weak/negative (<75%), with ≥1 stem/myeloid marker. Exclude ALAL with BCL11B rearrangement."]));
+    }
+    if (c.hxCML && has(d.fus, "BCR::ABL1") && !acute && c.lymphoblastsIncreased) {
+      push(cand("Chronic myeloid leukaemia, blast phase (lymphoid)", "Myeloproliferative neoplasms", "criteria met",
+        ["BCR::ABL1", "increased lymphoblasts"], []));
+    }
+
+    const myeloidContext = !["B", "T", "B/myeloid", "T/myeloid", "MPAL-other", "undiff", "ambiguous"].includes(lineage) || !acute;
+    let amlDefined = false;
+
+    if (myeloidContext) {
+      // ---- AML with defining genetic abnormalities (blast-independent ones) ----
+      for (const [k, e] of AML_FUSIONS) {
+        if (has(d.fus, k)) {
+          amlDefined = true;
+          const notes = [];
+          if (!acute) notes.push(`Blasts <20% (${blastTxt}): WHO-HAEM5 allows this diagnosis irrespective of blast count. Correlate clinically; document blast %.`);
+          if (k === "PML::RARA") notes.push("Abnormal promyelocytes count as blast equivalents. Urgent clinical notification (coagulopathy risk).");
+          push(cand(e, "AML with defining genetic abnormalities", "criteria met", [k + (k.includes("::") ? " fusion" : " rearrangement")], [], notes));
+        }
+      }
+      if (c.npm1 && !amlDefined) {
+        amlDefined = true;
+        push(cand("AML with NPM1 mutation", "AML with defining genetic abnormalities", "criteria met", ["NPM1 mutation"], [],
+          acute ? [] : [`Blasts <20% (${blastTxt}): diagnosable irrespective of blast count; correlate (NPM1 with low blasts is often seen in early AML).`]));
+      }
+    }
+
+    // ---- MLN-TK ----
+    const tk = TK_FUSIONS.filter(([k]) => has(d.fus, k));
+    for (const [k, e] of tk) {
+      push(cand(e, "Myeloid/lymphoid neoplasms with eosinophilia and tyrosine kinase gene fusions", "criteria met",
+        [k + " rearrangement/fusion", d.aec >= 1.5 ? `eosinophilia (${d.aec} ×10⁹/L)` : null].filter(Boolean),
+        [],
+        ["May present as chronic-phase MPN/MDS-MPN or in blast phase (myeloid, lymphoid or mixed). Eosinophilia is characteristic but not required. Report the phase."]));
+      if (acute) { amlDefined = true; out[out.length - 1].entity += ", blast phase"; }
+    }
+
+    // ---- BCR::ABL1: CML vs AML with BCR::ABL1 ----
+    const bcr = has(d.fus, "BCR::ABL1");
+    if (bcr && myeloidContext) {
+      if (acute) {
+        if (c.hxCML || c.splenomegaly || num(c.basoPct) >= 2) {
+          push(cand("Chronic myeloid leukaemia, blast phase", "Myeloproliferative neoplasms", c.hxCML ? "criteria met" : "probable",
+            ["BCR::ABL1", "≥20% blasts", c.hxCML ? "history of CML" : "MPN features (splenomegaly/basophilia)"], [],
+            ["Blast phase: ≥20% myeloid blasts in PB/BM, extramedullary blast proliferation, or increased lymphoblasts. Distinguish from de novo AML with BCR::ABL1."]));
+        }
+        if (!c.hxCML) {
+          push(cand("AML with BCR::ABL1 fusion", "AML with defining genetic abnormalities", c.splenomegaly ? "consider" : "criteria met",
+            ["BCR::ABL1", "≥20% blasts", "no known CML history"], [],
+            ["Requires ≥20% blasts. Difficult to separate from initial myeloid blast phase of CML — look for basophilia, splenomegaly, MPN-type marrow; follow-up after therapy may clarify."]));
+        }
+        amlDefined = true;
+      } else {
+        push(cand("Chronic myeloid leukaemia, chronic phase", "Myeloproliferative neoplasms", "criteria met", ["BCR::ABL1", "<20% blasts"], [],
+          ["Accelerated phase is no longer defined in WHO-HAEM5; report high-risk features instead (e.g. blasts 10–19%, basophils ≥20%, additional chromosomal abnormalities in Ph+ cells, resistance)."]));
+      }
+    }
+
+    // ---- AEL (blast-independent, supersedes AML-MR) ----
+    const ery = num(c.bmErythroidPct), proE = num(c.proEryPct);
+    if (myeloidContext && !amlDefined && ery !== null && proE !== null && proE >= 30 && ery >= 50) {
+      amlDefined = true;
+      push(cand("Acute erythroid leukaemia", "AML defined by differentiation", ery >= 80 ? "criteria met" : "probable",
+        [`proerythroblasts ${proE}%`, `erythroid cells ${ery}%`], ery >= 80 ? [] : ["Erythroid predominance is usually ≥80% (cases <80% are recognised)"],
+        ["Diagnosis supersedes AML-MR; does not require 20% myeloblasts. Biallelic TP53 alteration is typical — " + (d.tp53 ? "TP53 mutation entered." : "check TP53.")]));
+    }
+
+    // ---- AML with ≥20% blasts ----
+    if (myeloidContext && acute && !amlDefined) {
+      if (c.hxMPN) {
+        push(cand(`${c.hxMPNType || "Myeloproliferative neoplasm"}, blast phase`, "Myeloproliferative neoplasms", "criteria met",
+          ["≥20% blasts", "prior MPN"], [], ["AML arising from MPN is retained in the MPN category as blast phase."]));
+        amlDefined = true;
+      } else if (c.cebpa) {
+        push(cand("AML with CEBPA mutation", "AML with defining genetic abnormalities", "criteria met", ["CEBPA mutation (biallelic or single bZIP in-frame)", "≥20% blasts"]));
+        amlDefined = true;
+      } else if (d.mrCyto.length || d.mrGenes.length || c.hxMDS || c.hxMDSMPN) {
+        const met = ["≥20% blasts"].concat(d.mrCyto.map(k => MR_CYTO[k]), d.mrGenes.map(g => g + " mutation"),
+          c.hxMDS ? ["history of MDS"] : [], c.hxMDSMPN ? ["history of MDS/MPN"] : []);
+        push(cand("AML, myelodysplasia-related", "AML with defining genetic abnormalities", "criteria met", met, [],
+          ["Morphological multilineage dysplasia alone no longer qualifies."]));
+        amlDefined = true;
+      } else if (has(d.fus, "otherAML")) {
+        push(cand("AML with other defined genetic alterations", "AML with defining genetic abnormalities", "criteria met", ["≥20% blasts", "other defined genetic alteration"]));
+        amlDefined = true;
+      } else if (!d.geneticsDone || !d.lineageKnown) {
+        const myeloid = d.lineageKnown && !["B", "T"].includes(lineage);
+        push(cand(myeloid ? "Acute myeloid leukaemia — WHO-HAEM5 type pending cytogenetic/molecular studies" : "Acute leukaemia — lineage and WHO-HAEM5 type to be determined",
+          myeloid ? "AML (provisional)" : "Acute leukaemia (provisional)", "probable",
+          ["≥20% blasts (" + blastTxt + ")", c.auer && "Auer rods (myeloid lineage)", c.mpoPos === "yes" && "MPO-positive blasts"].filter(Boolean),
+          [!d.lineageKnown && "lineage: flow cytometry / MPO cytochemistry", !d.geneticsDone && "karyotype/FISH (PML::RARA, RUNX1::RUNX1T1, CBFB::MYH11, KMT2A, BCR::ABL1)", !d.geneticsDone && "NGS incl. NPM1, CEBPA, FLT3, TP53 and myelodysplasia-related genes"].filter(Boolean),
+          ["WHO-HAEM5 classifies acute leukaemia primarily by defining genetic abnormalities; the specific type can be assigned only after these studies. If promyelocytes are abnormal or there is coagulopathy, exclude APL urgently."]));
+        amlDefined = true;
+      } else {
+        // defined by differentiation
+        const mg = num(c.bmMaturingGranPct), mono = num(c.bmMonocyticPct);
+        const mpo = c.mpoPos; // "yes" | "no" | ""
+        let e = null, why = [];
+        if (c.megaMarkers) { e = "Acute megakaryoblastic leukaemia"; why = ["blasts express CD41/CD61/CD42b"]; }
+        else if (c.basoMetachromasia) { e = "Acute basophilic leukaemia"; why = ["toluidine blue metachromasia"]; }
+        else if (mono !== null && mono >= 80 && (mg === null || mg < 20)) { e = "Acute monocytic leukaemia"; why = [`monocytic cells ${mono}%`]; }
+        else if (mono !== null && mono >= 20 && mg !== null && mg >= 20) { e = "Acute myelomonocytic leukaemia"; why = [`monocytic ${mono}%`, `maturing granulocytes ${mg}%`]; }
+        else if (mpo === "no") { e = "AML with minimal differentiation"; why = ["<3% MPO/SBB-positive blasts", "≥2 myeloid antigens required"]; }
+        else if (mpo === "yes" && mg !== null) { e = mg >= 10 ? "AML with maturation" : "AML without maturation"; why = ["≥3% MPO/SBB-positive blasts", `maturing granulocytes ${mg}%`]; }
+        push(cand(e || "AML, defined by differentiation (subtype undetermined)", "AML defined by differentiation", e ? "criteria met" : "probable",
+          ["≥20% blasts", "no defining genetic abnormality entered"].concat(why),
+          e ? [] : ["MPO/SBB cytochemistry or flow, maturing granulocyte %, monocytic %"],
+          ["Applies only once AML-defining genetic abnormalities, AML-MR, MN-pCT and MPAL are excluded — confirm cytogenetics and NGS are complete."]));
+        amlDefined = true;
+      }
+      if (d.tp53) out[out.length - 1].notes.push("TP53 mutation: not a separate AML type in WHO-HAEM5 (ICC 2022 defines AML with mutated TP53) — report VAF and allelic state.");
+    }
+    if (c.extramedullaryTumour && (acute || amlDefined)) {
+      push(cand("Myeloid sarcoma", "Myeloid sarcoma", "consider", ["extramedullary myeloid tumour mass"], [],
+        ["Tissue manifestation of AML or transformed MDS/MDS-MPN/MPN; classify the underlying genetic type as for AML."]));
+    }
+
+    // ---- chronic myeloid neoplasms (<20% blasts) ----
+    const chronic = d.blastKnown && !acute && !amlDefined && myeloidContext && !bcr;
+    let mpnMet = false, mdsmpnMet = false;
+
+    if (chronic && tk.length === 0) {
+      // PV
+      const hct = num(c.hct), male = c.sex === "M";
+      const pvM1 = (d.hb !== null && d.hb > (male ? 16.5 : 16.0)) || (hct !== null && hct > (male ? 49 : 48));
+      const pvM2 = c.megaMorph === "PV";
+      const pvM3 = !!(c.jak2 || c.jak2ex12);
+      const pvMin = !!c.epoLow;
+      if (pvM1 && pvM3) {
+        const ok = (pvM1 && pvM2 && pvM3) || (pvM1 && pvM2 && pvMin);
+        push(cand("Polycythaemia vera", "Myeloproliferative neoplasms", ok ? "criteria met" : "probable",
+          ["Hb/Hct above threshold", "JAK2 V617F/exon 12", pvM2 && "BM panmyelosis with pleomorphic mature megakaryocytes", pvMin && "subnormal serum EPO"].filter(Boolean),
+          [!pvM2 && "BM morphology (trilineage growth, pleomorphic mature megakaryocytes)", !pvMin && !pvM2 && "serum EPO"].filter(Boolean),
+          ["Dx: all 3 major, or first 2 major + minor criterion. BM biopsy may be omitted with sustained absolute erythrocytosis (Hb >18.5/16.5 g/dL)."]));
+        mpnMet = mpnMet || ok;
+      }
+      // PMF
+      const fib = num(c.fibrosis);
+      const pmfMorph = c.megaMorph === "PMF";
+      const pmfClonal = d.driver || d.clonal;
+      if (pmfMorph && pmfClonal && !mpnMet) {
+        const overt = fib !== null && fib >= 2;
+        const minors = [d.anaemia && "anaemia", d.wbc !== null && d.wbc >= 11 && "leukocytosis ≥11 ×10⁹/L", c.splenomegaly && "palpable splenomegaly",
+          c.ldhHigh && "LDH above ULN", overt && c.leukoerythro && "leukoerythroblastosis"].filter(Boolean);
+        push(cand(overt ? "Primary myelofibrosis, overt fibrotic stage" : "Primary myelofibrosis, early/prefibrotic stage",
+          "Myeloproliferative neoplasms", minors.length ? "criteria met" : "probable",
+          ["megakaryocytic proliferation and atypia", `reticulin fibrosis MF-${fib ?? "?"}`, d.driver ? "JAK2/CALR/MPL" : "other clonal marker"].concat(minors),
+          minors.length ? [] : ["≥1 minor criterion (anaemia, WBC ≥11, splenomegaly, raised LDH" + (overt ? ", leukoerythroblastosis" : "") + ")"],
+          [overt ? "Overt: fibrosis grade 2–3." : "Prefibrotic: fibrosis ≤grade 1 with increased age-adjusted cellularity, granulocytic proliferation, often decreased erythropoiesis.", "Exclude reactive fibrosis, other myeloid neoplasms."]));
+        mpnMet = mpnMet || minors.length > 0;
+      }
+      // ET
+      if (d.plt !== null && d.plt >= 450 && !mpnMet && !(d.sf3b1 && d.anaemia)) {
+        const m2 = c.megaMorph === "ET";
+        const m4 = d.driver;
+        const minor = d.clonal || !!c.noReactive;
+        const ok = (m2 && m4) || (m2 && minor);
+        if (m4 || m2) {
+          push(cand("Essential thrombocythaemia", "Myeloproliferative neoplasms", ok ? "criteria met" : "probable",
+            [`platelets ${d.plt} ×10⁹/L`, m2 && "large mature hyperlobulated megakaryocytes", m4 && "JAK2/CALR/MPL"].filter(Boolean),
+            [!m2 && "BM megakaryocyte morphology", !m4 && !minor && "driver mutation or other clonal marker / exclusion of reactive thrombocytosis"].filter(Boolean),
+            ["Exclude CML (BCR::ABL1), PV, PMF, MDS and other myeloid neoplasms."]));
+          mpnMet = mpnMet || ok;
+        }
+      }
+      // CNL
+      if (c.csf3r && d.wbc !== null && d.wbc >= 25) {
+        push(cand("Chronic neutrophilic leukaemia", "Myeloproliferative neoplasms", "criteria met",
+          [`WBC ${d.wbc} ×10⁹/L`, "CSF3R activating mutation"], [],
+          ["Requires neutrophils ≥80% of WBC with immature granulocytes <10% and rare blasts; no dysgranulopoiesis or monocytosis."]));
+        mpnMet = true;
+      }
+      // CEL
+      if (d.aec !== null && d.aec >= 1.5) {
+        const ok = !!c.eosPersist4wk && d.clonal && d.dysplasia;
+        push(cand("Chronic eosinophilic leukaemia", "Myeloproliferative neoplasms", ok ? "criteria met" : "consider",
+          [`AEC ${d.aec} ×10⁹/L`, c.eosPersist4wk && "sustained ≥4 weeks", d.clonal && "clonality", d.dysplasia && "abnormal BM morphology"].filter(Boolean),
+          [!c.eosPersist4wk && "sustained hypereosinophilia ≥4 weeks", !d.clonal && "evidence of clonality", !d.dysplasia && "abnormal BM morphology (e.g. megakaryocytic/erythroid dysplasia)"].filter(Boolean),
+          ["Exclude M/LN-eo with TK fusions, reactive eosinophilia, lymphocyte-variant HES and other myeloid neoplasms. Increased blasts no longer substitute for clonality."]));
+        mpnMet = mpnMet || ok;
+      }
+      // JMML
+      if (d.child && d.amc !== null && d.amc >= 1 && c.ras) {
+        push(cand("Juvenile myelomonocytic leukaemia", "Myeloproliferative neoplasms", c.splenomegaly ? "criteria met" : "probable",
+          ["child", `monocytes ${d.amc} ×10⁹/L`, "RAS pathway mutation", c.splenomegaly && "splenomegaly"].filter(Boolean),
+          [!c.splenomegaly && "splenomegaly"].filter(Boolean),
+          ["Exclude KMT2A rearrangement and BCR::ABL1. Consider germline RASopathy (NF1, Noonan/PTPN11, CBL)."]));
+        mpnMet = true;
+      }
+      if (d.driver && !mpnMet && !(d.sf3b1 && d.plt >= 450)) {
+        push(cand("Myeloproliferative neoplasm, not otherwise specified", "Myeloproliferative neoplasms", "consider",
+          ["MPN driver mutation"], ["full criteria for PV, ET or PMF not met with data entered"],
+          ["Use MPN-NOS only after complete clinicopathological correlation; often reflects early-phase disease or incomplete data."]));
+      }
+      if ((c.hxMPN || mpnMet) && d.blastKnown && d.maxBlast >= 10) {
+        out[out.length - 1].notes.push("Blasts 10–19% in PV/ET/PMF: accelerated phase.");
+      }
+
+      // ---- MDS/MPN ----
+      if (d.amc !== null && d.monoPct !== null && d.amc >= 0.5 && d.monoPct >= 10 && !mpnMet) {
+        const sup = [d.dysplasia && `dysplasia (${d.dysList.join(", ")})`, d.clonal && "clonal cytogenetic/molecular abnormality",
+          c.monoPartition && "abnormal monocyte subset partitioning"].filter(Boolean);
+        const ok = d.amc >= 1 ? sup.length >= 1 : (d.dysplasia && d.clonal);
+        const cmml2 = (d.pb ?? 0) >= 5 || (d.bm ?? 0) >= 10;
+        const sub = (d.wbc !== null && d.wbc >= 13 ? "MP-CMML" : "MD-CMML") + ", " + (cmml2 ? "CMML-2" : "CMML-1");
+        push(cand("Chronic myelomonocytic leukaemia", "Myelodysplastic/myeloproliferative neoplasms", ok ? "criteria met" : "probable",
+          [`monocytes ${d.amc} ×10⁹/L (${d.monoPct}%)`, "<20% blasts"].concat(sup),
+          ok ? [] : [d.amc >= 1 ? "≥1 supporting criterion" : "both dysplasia AND a clonal abnormality (monocytes 0.5–<1 ×10⁹/L)"],
+          [`Subtype: ${sub} (MD/MP by WBC 13 ×10⁹/L; CMML-2 = PB blasts 5–19% and/or BM 10–19%).`, "Monocytosis must be persistent. Exclude CML, other MPN and M/LN-eo with TK fusions."]));
+        mdsmpnMet = ok;
+      }
+      const imm = num(c.pbImmMyeloidPct);
+      if (!mdsmpnMet && d.wbc !== null && d.wbc >= 13 && imm !== null && imm >= 10 && c.dysGran && !mpnMet && !c.csf3r) {
+        const ok = (num(c.basoPct) ?? 0) < 2 && (d.monoPct ?? 0) < 10;
+        push(cand("MDS/MPN with neutrophilia", "Myelodysplastic/myeloproliferative neoplasms", ok ? "criteria met" : "probable",
+          [`WBC ${d.wbc} ×10⁹/L`, `immature myeloid cells ${imm}%`, "dysgranulopoiesis"],
+          ok ? [] : ["basophils <2% and monocytes <10% of WBC"], ["Replaces atypical CML. SETBP1/ASXL1 mutations support; CSF3R favours CNL."]));
+        mdsmpnMet = ok;
+      }
+      if (!mdsmpnMet && d.plt !== null && d.plt >= 450 && d.anaemia && (d.sf3b1 || num(c.ringSid) >= 15) &&
+          (d.bm ?? 0) < 5 && (d.pb ?? 0) < 1 && !has(c.cyto, "del5q") && !has(c.cyto, "mono7")) {
+        push(cand(d.sf3b1 ? "MDS/MPN with SF3B1 mutation and thrombocytosis" : "MDS/MPN with ring sideroblasts and thrombocytosis",
+          "Myelodysplastic/myeloproliferative neoplasms", "criteria met",
+          [`platelets ${d.plt} ×10⁹/L`, "anaemia", d.sf3b1 ? "SF3B1 mutation" : `ring sideroblasts ${c.ringSid}%`, "BM blasts <5%, PB <1%"], [],
+          ["JAK2 V617F/CALR/MPL may co-occur. Exclude del(5q), −7, inv(3)/t(3;3)."]));
+        mdsmpnMet = true;
+      }
+      if (!mdsmpnMet && !mpnMet && d.cytopenia && d.dysplasia && ((d.wbc ?? 0) >= 13 || (d.plt ?? 0) >= 450)) {
+        push(cand("MDS/MPN, not otherwise specified", "Myelodysplastic/myeloproliferative neoplasms", "consider",
+          ["cytopenia", "dysplasia", "myeloproliferative feature (WBC ≥13 or platelets ≥450)"], [],
+          ["Only after excluding all specific MDS/MPN and MPN types."]));
+        mdsmpnMet = true;
+      }
+
+      // ---- MDS ----
+      if (!mdsmpnMet && !mpnMet && (d.cytopenia || !known(c.hb))) {
+        const mdsDefGenetic = d.biTP53 || (has(c.cyto, "del5q") && d.lowBlast) || (d.sf3b1 && d.lowBlast);
+        if (d.dysplasia || mdsDefGenetic || (d.bm ?? 0) >= 5 || (d.pb ?? 0) >= 2) {
+          const met = [d.cytopenia ? "cytopenia: " + d.cytopeniaList.join(", ") : null, d.dysplasia ? "dysplasia: " + d.dysList.join(", ") : null, blastTxt].filter(Boolean);
+          const miss = d.cytopenia ? [] : ["CBC (cytopenia required)"];
+          const fib = num(c.fibrosis), cell = num(c.bmCellularity), rs = num(c.ringSid);
+          let e;
+          if (d.child) {
+            e = d.lowBlast ? "Childhood MDS with low blasts (cMDS-LB)" : "Childhood MDS with increased blasts (cMDS-IB)";
+            if (d.lowBlast && cell !== null) e += cell <= 25 ? " — hypocellular" : " — NOS";
+          } else if (d.biTP53) {
+            e = "MDS with biallelic TP53 inactivation (MDS-biTP53)"; met.push("multi-hit TP53");
+          } else if (d.lowBlast && has(c.cyto, "del5q") && !has(c.cyto, "mono7") && (num(c.del5qOthers) ?? 0) <= 1) {
+            e = "MDS with low blasts and isolated 5q deletion (MDS-5q)"; met.push("del(5q) alone or with 1 other abnormality (not −7/del(7q))");
+          } else if (d.lowBlast && d.sf3b1 && !has(c.cyto, "del5q") && !has(c.cyto, "mono7") && !has(c.cyto, "complex")) {
+            e = "MDS with low blasts and SF3B1 mutation (MDS-SF3B1)"; met.push("SF3B1 mutation" + (num(c.sf3b1VAF) ? ` (VAF ${c.sf3b1VAF}%)` : ""));
+          } else if (d.lowBlast && rs !== null && rs >= 15 && !has(c.cyto, "del5q") && !has(c.cyto, "mono7") && !has(c.cyto, "complex")) {
+            e = "MDS with low blasts and ring sideroblasts"; met.push(`ring sideroblasts ${rs}% (SF3B1 wild-type)`);
+          } else if (fib !== null && fib >= 2 && ((d.bm ?? 0) >= 5 || (d.pb ?? 0) >= 2)) {
+            e = "MDS with fibrosis (MDS-f)"; met.push(`fibrosis MF-${fib}`);
+          } else if ((d.bm ?? 0) >= 10 || (d.pb ?? 0) >= 5 || c.auer) {
+            e = "MDS with increased blasts-2 (MDS-IB2)"; if (c.auer) met.push("Auer rods");
+          } else if ((d.bm ?? 0) >= 5 || (d.pb ?? 0) >= 2) {
+            e = "MDS with increased blasts-1 (MDS-IB1)";
+          } else if (cell !== null && cell <= 25) {
+            e = "MDS, hypoplastic (MDS-h)"; met.push(`cellularity ${cell}% (≤25%, age-adjusted)`);
+          } else {
+            e = "MDS with low blasts (MDS-LB)";
+          }
+          const notes = ["Exclude non-neoplastic causes of cytopenia/dysplasia (B12/folate, copper, drugs, alcohol, infection incl. HIV, toxins)."];
+          if (/IB2/.test(e)) notes.push("ICC 2022 would classify 10–19% blasts as MDS/AML — WHO-HAEM5 keeps MDS-IB2.");
+          if (d.tp53 && !d.biTP53) notes.push("Single-hit TP53: report VAF; check for copy-number loss/cnLOH (would make it multi-hit).");
+          if (/MDS-h/.test(e)) notes.push("Distinguish from aplastic anaemia / PNH; trephine essential.");
+          push(cand(e, "Myelodysplastic neoplasms", miss.length ? "probable" : "criteria met", met, miss, notes));
+        }
+      }
+
+      // ---- clonal haematopoiesis ----
+      const anyMDSish = out.some(o => /Myelodysplastic|Myeloproliferative|AML/.test(o.family));
+      const vaf = Math.max(num(c.otherMutVAF) ?? 0, num(c.tp53VAF) ?? 0, num(c.sf3b1VAF) ?? 0, (d.mrGenes.length || d.driver) ? 2 : 0);
+      if (!anyMDSish && (d.anyMut) && vaf >= 2 && !d.dysplasia) {
+        push(cand(d.cytopenia ? "Clonal cytopenia of undetermined significance (CCUS)" : "Clonal haematopoiesis of indeterminate potential (CHIP)",
+          "Myeloid precursor lesions", "criteria met",
+          ["somatic myeloid-gene mutation VAF ≥2%", d.cytopenia ? "persistent unexplained cytopenia: " + d.cytopeniaList.join(", ") : "no cytopenia"],
+          [], ["Requires absence of diagnostic dysplasia, <5% BM blasts and no defined myeloid neoplasm. VAF threshold ≥4% for X-linked genes in males."]));
+      }
+    }
+
+    // ---- mastocytosis ----
+    const minors = [c.mcAtypical25 && ">25% spindle/atypical mast cells", c.kit && "KIT D816V (or other activating KIT mutation)",
+      c.mcCD25 && "CD2 and/or CD25 and/or CD30 expression", num(c.tryptase) > 20 && `serum tryptase ${c.tryptase} ng/mL (>20)`].filter(Boolean);
+    if (c.mcAggregates || minors.length >= 1) {
+      const ok = (c.mcAggregates && minors.length >= 1) || minors.length >= 3;
+      const ahn = out.some(o => /Myelo|AML|leukaemia/.test(o.family + o.entity) && o.status === "criteria met");
+      if (ok || c.mcAggregates) {
+        push(cand(ahn ? "Systemic mastocytosis with an associated haematological neoplasm" : "Systemic mastocytosis",
+          "Mastocytosis", ok ? "criteria met" : "probable",
+          [c.mcAggregates && "multifocal dense mast cell infiltrates (≥15 per aggregate)"].concat(minors).filter(Boolean),
+          ok ? [] : ["≥1 minor criterion (with major) or ≥3 minor criteria"],
+          ["Subtype (BMM, ISM, SSM, ASM, MCL) requires B-findings and C-findings assessment. Tryptase criterion should be adjusted for hereditary α-tryptasaemia and is not valid with an associated myeloid neoplasm."]));
+      }
+    }
+
+    // ---- plasma cell (IMWG) ----
+    const pc = num(c.bmpcPct), mp = num(c.mProtein), pbpc = num(c.pbPlasmaPct);
+    if (pbpc !== null && pbpc >= 5 && (pc !== null || mp !== null || c.plasmacytoma || c.pcClonal)) {
+      push(cand("Plasma cell myeloma — plasma cell leukaemia", "Plasma cell neoplasms and other diseases with paraproteins", "criteria met",
+        [`circulating plasma cells ${pbpc}% of WBC (≥5%)`, pc !== null && `clonal BM plasma cells ${pc}%`].filter(Boolean),
+        c.pcClonal ? [] : ["confirm clonality of circulating plasma cells (flow cytometry κ/λ)"],
+        ["IMWG 2021 threshold ≥5% circulating plasma cells (previously 20% or 2×10⁹/L). State primary (de novo) or secondary (progression of known myeloma). Aggressive disease: urgent haematology referral; report FISH incl. t(11;14), del(17p)."]));
+    }
+    if (c.plasmacytoma && c.plasmacytomaSolitary && !(c.crab || c.flc100 || c.mri || (pc !== null && pc >= 10))) {
+      const minimal = pc !== null && pc > 0;
+      push(cand(minimal ? "Solitary plasmacytoma with minimal marrow involvement" : "Solitary plasmacytoma", "Plasma cell neoplasms and other diseases with paraproteins",
+        pc === null ? "probable" : "criteria met",
+        ["biopsy-proven single plasmacytoma", "imaging otherwise clear", "no CRAB", pc !== null && (minimal ? `clonal BM plasma cells ${pc}% (<10%)` : "no clonal BM plasma cells")].filter(Boolean),
+        pc === null ? ["bone marrow examination for clonal plasma cells"] : [],
+        ["Specify bone or extramedullary site. With minimal marrow involvement, progression risk to myeloma is higher; whole-body MRI or PET-CT required to exclude other lesions."]));
+    }
+    if (pc !== null || mp !== null) {
+      const mde = [c.crab && "CRAB feature", pc !== null && pc >= 60 && "clonal BM plasma cells ≥60%", c.flc100 && "involved/uninvolved FLC ratio ≥100", c.mri && ">1 focal lesion on MRI"].filter(Boolean);
+      if (((pc ?? 0) >= 10 || c.plasmacytoma) && mde.length) {
+        push(cand("Plasma cell myeloma", "Plasma cell neoplasms and other diseases with paraproteins", "criteria met",
+          [`clonal BM plasma cells ${pc ?? "—"}%`].concat(mde), [], ["IMWG criteria. Report clonality (light chain restriction), FISH risk markers (t(4;14), t(14;16), del(17p), 1q gain)."]));
+      } else if ((pc !== null && pc >= 10) || (mp !== null && mp >= 30)) {
+        push(cand("Plasma cell myeloma — smouldering (asymptomatic)", "Plasma cell neoplasms and other diseases with paraproteins", "criteria met",
+          [mp !== null && mp >= 30 && `M-protein ${mp} g/L`, pc !== null && pc >= 10 && `clonal BM plasma cells ${pc}%`, "no myeloma-defining event"].filter(Boolean), [],
+          ["IMWG: serum M-protein ≥30 g/L (or urinary ≥500 mg/24 h) and/or clonal BM PCs 10–59%, without myeloma-defining events or amyloidosis."]));
+      } else if (mp !== null && mp > 0) {
+        push(cand(c.mProteinIgM ? "IgM monoclonal gammopathy of undetermined significance" : "Non-IgM monoclonal gammopathy of undetermined significance",
+          "Plasma cell neoplasms and other diseases with paraproteins", "criteria met",
+          [`M-protein ${mp} g/L (<30)`, `clonal BM plasma cells ${pc ?? "—"}% (<10)`, "no end-organ damage"], [],
+          ["Exclude MGRS (renal), AL amyloidosis and lymphoplasmacytic lymphoma (IgM)."]));
+      }
+    }
+
+    // ---- CLL / MBL ----
+    const bcount = num(c.clonalB);
+    if (bcount !== null) {
+      let e;
+      if (c.cllPhenotype === false || c.cllPhenotype === "no") e = (c.lymphadenopathy ? null : "Monoclonal B-cell lymphocytosis (non-CLL/SLL type)");
+      else if (bcount >= 5) e = "Chronic lymphocytic leukaemia/small lymphocytic lymphoma";
+      else if (c.lymphadenopathy) e = "Chronic lymphocytic leukaemia/small lymphocytic lymphoma (SLL presentation)";
+      else if (bcount < 0.5) e = "Monoclonal B-cell lymphocytosis (low-count)";
+      else e = "Monoclonal B-cell lymphocytosis (CLL/SLL type)";
+      if (e) push(cand(e, "Mature B-cell neoplasms", "criteria met", [`clonal B cells ${bcount} ×10⁹/L`], [],
+        ["CLL requires ≥5 ×10⁹/L monoclonal CLL-phenotype B cells in PB. Report CD5/CD23/CD200/sIg; TP53 & IGHV status; 'B-PLL' is no longer an entity."]));
+    }
+
+    // qualifiers on myeloid
+    if (qual.length) {
+      out.forEach(o => {
+        if (/Myelo|AML|myeloid|leukaemia, blast/.test(o.family + o.entity) && !/precursor|Mastocytosis/i.test(o.family)) {
+          o.qualifiers = qual.slice();
+          if (c.hxCytotoxic) o.notes.push("MN-pCT: report as '<type>, post cytotoxic therapy'. Excludes methotrexate; PARP inhibitors are included.");
+        }
+      });
+    }
+
+    const rank = { "criteria met": 0, "probable": 1, "consider": 2 };
+    out.sort((a, b) => rank[a.status] - rank[b.status]);
+    if (!out.length) warn.push("No WHO-HAEM5 entity matched the data entered. For lymphoma/tissue diagnoses, choose the entity from the catalogue.");
+    return { candidates: out, warnings: warn, derived: d };
+  }
+
+  function diagnosisLine(cand) {
+    if (!cand) return "";
+    let s = cand.entity;
+    if (cand.qualifiers && cand.qualifiers.length) s += ", " + cand.qualifiers.join(", ");
+    return s;
+  }
+
+  const API = { classify, diagnosisLine, CATALOG, MR_GENES, MR_CYTO, AML_FUSIONS, TK_FUSIONS, derive };
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+  else root.HAEM5 = API;
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* Finds cells on a Romanowsky-stained (MGG / Leishman / Giemsa / Wright) blood-film photograph.
+   Pure function on RGBA pixels — no libraries — so it runs in the browser and in tests.
+   Returns nucleated cells (to be cropped and classified), platelet and red-cell counts.
+
+   Method: purple chromatin is separated from pink red cells and pale background by a
+   "blue-minus-green" score with an Otsu threshold; red cells are found from the pink mask and
+   their median size calibrates every other size, so the method works at any magnification. */
+(function (root) {
+  "use strict";
+
+  function otsu(hist, total) {
+    let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+    let sumB = 0, wB = 0, best = 0, thr = 0;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t]; if (!wB) continue; const wF = total - wB; if (!wF) break;
+      sumB += t * hist[t]; const mB = sumB / wB, mF = (sum - sumB) / wF, v = wB * wF * (mB - mF) ** 2;
+      if (v > best) { best = v; thr = t; }
+    }
+    return thr;
+  }
+
+  // separable box dilation / erosion on a 0/1 mask
+  function morph(mask, w, h, r, dilate) {
+    const tmp = new Uint8Array(w * h), out = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) { let run = 0; const row = y * w;
+      for (let x = 0; x < w; x++) { // horizontal
+        let v = dilate ? 0 : 1;
+        for (let k = -r; k <= r; k++) { const xx = x + k; const m = xx < 0 || xx >= w ? (dilate ? 0 : 1) : mask[row + xx];
+          if (dilate ? m : !m) { v = dilate ? 1 : 0; break; } }
+        tmp[row + x] = v; } }
+    for (let x = 0; x < w; x++) for (let y = 0; y < h; y++) {
+      let v = dilate ? 0 : 1;
+      for (let k = -r; k <= r; k++) { const yy = y + k; const m = yy < 0 || yy >= h ? (dilate ? 0 : 1) : tmp[yy * w + x];
+        if (dilate ? m : !m) { v = dilate ? 1 : 0; break; } }
+      out[y * w + x] = v; }
+    return out;
+  }
+
+  function components(mask, w, h) {
+    const lab = new Int32Array(w * h).fill(-1), comps = [], stack = [];
+    for (let i = 0; i < w * h; i++) {
+      if (!mask[i] || lab[i] >= 0) continue;
+      const id = comps.length; let n = 0, sx = 0, sy = 0, x0 = w, y0 = h, x1 = 0, y1 = 0;
+      lab[i] = id; stack.push(i);
+      while (stack.length) {
+        const p = stack.pop(), x = p % w, y = (p / w) | 0; n++; sx += x; sy += y;
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        if (x > 0 && mask[p - 1] && lab[p - 1] < 0) { lab[p - 1] = id; stack.push(p - 1); }
+        if (x < w - 1 && mask[p + 1] && lab[p + 1] < 0) { lab[p + 1] = id; stack.push(p + 1); }
+        if (y > 0 && mask[p - w] && lab[p - w] < 0) { lab[p - w] = id; stack.push(p - w); }
+        if (y < h - 1 && mask[p + w] && lab[p + w] < 0) { lab[p + w] = id; stack.push(p + w); }
+      }
+      comps.push({ id, area: n, cx: sx / n, cy: sy / n, x0, y0, x1, y1 });
+    }
+    return { comps, lab };
+  }
+
+  /**
+   * @param {Uint8ClampedArray|Uint8Array} rgba  pixels (already downscaled; ~800–1600 px wide is ideal)
+   * @returns {{wbc: Array<{cx:number, cy:number, size:number, x0:number,y0:number,x1:number,y1:number, area:number, touchesEdge:boolean}>,
+   *           platelets:number, rbc:number, rbcDiameter:number, nucleusThreshold:number}}
+   */
+  function detect(rgba, w, h, opts = {}) {
+    const N = w * h, score = new Uint8Array(N), bright = new Uint8Array(N);
+    const hist = new Float64Array(256); let cnt = 0;
+    for (let i = 0; i < N; i++) {
+      const r = rgba[4 * i], g = rgba[4 * i + 1], b = rgba[4 * i + 2];
+      const s = Math.max(0, Math.min(255, (b - g) * 2 + (r - g) * 0.3 - 30));   // purple chromatin
+      score[i] = s; bright[i] = (r + g + b) / 3;
+      if (bright[i] < 235) { hist[s | 0]++; cnt++; }
+    }
+    const thr = Math.max(opts.minThreshold ?? 70, otsu(hist, cnt));
+    const nuc = new Uint8Array(N);
+    for (let i = 0; i < N; i++) nuc[i] = score[i] > thr && bright[i] < 200 ? 1 : 0;
+
+    // red cells: pink / non-background, not chromatin. Size from bounding boxes (central pallor would shrink areas).
+    const bh = new Float64Array(256); for (let i = 0; i < N; i++) bh[bright[i] | 0]++;
+    let acc = 0, bg = 255; for (let t = 255; t >= 0; t--) { acc += bh[t]; if (acc >= 0.15 * N) { bg = t; break; } }   // background = brightest 15%
+    const pink = new Uint8Array(N);
+    for (let i = 0; i < N; i++) pink[i] = !nuc[i] && bright[i] < bg - 14 ? 1 : 0;
+    const pm = morph(morph(pink, w, h, 2, true), w, h, 2, false);           // close pallor gaps
+    const pinkC = components(pm, w, h).comps.filter(c => c.area > 40 && c.x0 > 1 && c.y0 > 1 && c.x1 < w - 2 && c.y1 < h - 2);
+    const minD = Math.sqrt(w * h) / 60;   // a red cell is never smaller than this fraction of the field
+    const round = pinkC.filter(c => { const bw = c.x1 - c.x0 + 1, bh2 = c.y1 - c.y0 + 1; const ar = Math.max(bw, bh2) / Math.min(bw, bh2);
+      return ar <= 1.35 && c.area / (bw * bh2) > 0.45 && (bw + bh2) / 2 >= minD; });
+    const diams = round.map(c => ((c.x1 - c.x0) + (c.y1 - c.y0)) / 2).sort((a, b) => a - b);
+    // the most common size among compact blobs = single red cells (clumps are larger)
+    const single = diams.filter(d => d >= diams[Math.floor(diams.length * 0.25)] && d <= diams[Math.floor(diams.length * 0.75)]);
+    const rbcD = single.length >= 3 ? single[Math.floor(single.length / 2)] : (opts.rbcDiameter || Math.sqrt(w * h) / 20);
+    const rbcArea = Math.PI * rbcD * rbcD / 4;
+    // nucleated cells: merge nearby lobes (segmented neutrophils) by dilating ~0.35 RBC diameters
+    const clean = morph(morph(nuc, w, h, 1, false), w, h, 1, true);
+    const raw = components(clean, w, h).comps;
+    const plateletMax = 0.10 * rbcArea, nucleusMin = 0.22 * rbcArea;
+    const pltCand = raw.filter(c => c.area >= 0.01 * rbcArea && c.area < plateletMax);
+    const big = new Uint8Array(N);
+    const keep = new Set(raw.filter(c => c.area >= nucleusMin).map(c => c.id));
+    const lab0 = components(clean, w, h).lab;
+    for (let i = 0; i < N; i++) if (lab0[i] >= 0 && keep.has(lab0[i])) big[i] = 1;
+    const merged = components(morph(big, w, h, Math.max(2, Math.round(rbcD * 0.35)), true), w, h).comps;
+    const wbc = merged.map(c => {
+      const size = Math.round(Math.max(c.x1 - c.x0, c.y1 - c.y0, rbcD * 1.6) * 1.9);   // crop side ≈ CellaVision framing
+      return { cx: Math.round((c.x0 + c.x1) / 2), cy: Math.round((c.y0 + c.y1) / 2), size, area: c.area, x0: c.x0, y0: c.y0, x1: c.x1, y1: c.y1,
+        touchesEdge: c.x0 <= 1 || c.y0 <= 1 || c.x1 >= w - 2 || c.y1 >= h - 2 };
+    }).filter(c => c.area >= nucleusMin);
+    // drop specks far smaller than the largest nucleus in view (platelet clumps, stain precipitate)
+    const maxA = Math.max(0, ...wbc.map(c => c.area));
+    const wbcF = wbc.filter(c => c.area >= 0.08 * maxA);
+    const rbcCount = pinkC.reduce((n, c) => { const d = ((c.x1 - c.x0) + (c.y1 - c.y0)) / 2; return n + (d < 0.6 * rbcD ? 0 : Math.max(1, Math.round((d / rbcD) ** 2 * 0.8))); }, 0);
+    const pad = rbcD * 0.8;
+    const platelets = pltCand.filter(p => !wbcF.some(c => p.cx > c.x0 - pad && p.cx < c.x1 + pad && p.cy > c.y0 - pad && p.cy < c.y1 + pad)).length;
+    return { wbc: wbcF, platelets, rbc: rbcCount, rbcDiameter: rbcD, nucleusThreshold: thr };
+  }
+
+  const API = { detect };
+  if (typeof module !== "undefined" && module.exports) module.exports = API; else root.HAEM5DETECT = API;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const el = (t, a = {}, ...kids) => { const e = document.createElement(t);
+  for (const [k, v] of Object.entries(a)) { if (k === "class") e.className = v; else if (k === "html") e.innerHTML = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== false && v != null) e.setAttribute(k, v === true ? "" : v); }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k)); return e; };
+const toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("on"), 1800); };
+const store = { get(k){ if (window.HAEM5_NO_LOCAL) return null; try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v){ if (window.HAEM5_NO_LOCAL) return; try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+/* ---------------- field schema ---------------- */
+const yn = [["", "—"], ["yes", "Yes"], ["no", "No"]];
+const FUS = [["PML::RARA"],["RUNX1::RUNX1T1"],["CBFB::MYH11"],["DEK::NUP214"],["RBM15::MRTFA"],["BCR::ABL1"],["KMT2A","KMT2A-r"],["MECOM","MECOM-r"],["NUP98","NUP98-r"],["ZNF384","ZNF384-r"],["BCL11B","BCL11B-r"],["PDGFRA","PDGFRA-r"],["PDGFRB","PDGFRB-r"],["FGFR1","FGFR1-r"],["JAK2r","JAK2-r"],["FLT3r","FLT3-r"],["ETV6::ABL1"],["otherTK","Other TK fusion"],["otherAML","Other AML-defining alteration"]];
+const CYTO = Object.entries(HAEM5.MR_CYTO).map(([k, v]) => [k, v]).concat([["otherAbn", "Other clonal abnormality"]]);
+const SECTIONS = [
+ { id: "case", title: "Case & specimen", lede: "Identification, clinical context and cntHistory. Use the laboratory number; data stay in this browser only.", sets: [
+   { legend: "Identification", fields: [
+     ["labNo","Lab / accession no.","text"],["patient","Patient name / ID","text"],["age","Age","num","years"],["sex","Sex","sel",[["","—"],["F","Female"],["M","Male"]]],
+     ["clinician","Referring clinician","text"],["dateRec","Date received","text"],["specimen","Specimen(s)","text",null,"e.g. PB film; BM aspirate + trephine (R PSIS)"],
+     ["clinical","Clinical details","area"]]},
+   { legend: "History", fields: [
+     ["hxMDS","Prior MDS","chk"],["hxMDSMPN","Prior MDS/MPN","chk"],["hxMPN","Prior MPN","chk"],["hxMPNType","MPN type","sel",[["","—"],["Polycythaemia vera","PV"],["Essential thrombocythaemia","ET"],["Primary myelofibrosis","PMF"],["Myeloproliferative neoplasm","MPN, other"]]],
+     ["hxCML","Known CML","chk"],["hxCytotoxic","Prior cytotoxic therapy / radiotherapy","chk"],["germline","Germline predisposition (gene)","text",null,"e.g. DDX41, RUNX1, GATA2"],["downSyndrome","Down syndrome","chk"],
+     ["splenomegaly","Palpable splenomegaly","chk"],["lymphadenopathy","Lymphadenopathy","chk"],["extramedullaryTumour","Extramedullary myeloid tumour","chk"]]}]},
+ { id: "blood", title: "Blood count & film", lede: "CBC and peripheral blood film. Absolute counts can be filled from the differential counter.", sets: [
+   { legend: "Full blood count", fields: [
+     ["hb","Haemoglobin","num","g/dL"],["hct","Haematocrit","num","%"],["wbc","WBC","num","×10⁹/L"],["anc","Neutrophils (ANC)","num","×10⁹/L"],
+     ["amc","Monocytes (absolute)","num","×10⁹/L"],["monoPct","Monocytes","num","% WBC"],["aec","Eosinophils (absolute)","num","×10⁹/L"],["basoPct","Basophils","num","% WBC"],
+     ["plt","Platelets","num","×10⁹/L"],["pbBlast","PB blasts + equivalents","num","%"],["pbImmMyeloidPct","PB immature myeloid (pro-/myelo-/metamyelocytes)","num","%"]]},
+   { legend: "Film & clinical findings", fields: [
+     ["rbcMorph","Red cell morphology","area",null,"e.g. normocytic normochromic; anisopoikilocytosis with teardrop cells; schistocytes 2%; rouleaux"],
+     ["pltMorph","Platelet morphology","text",null,"e.g. adequate; giant platelets; clumps seen"],
+     ["pbFilm","White cell & other film findings","area"],["leukoerythro","Leukoerythroblastic picture","chk"],["ldhHigh","LDH above ULN","chk"],["epoLow","Subnormal serum EPO","chk"],
+     ["eosPersist4wk","Hypereosinophilia sustained ≥4 weeks","chk"],["noReactive","Reactive cause excluded","chk"],["lymphoblastsIncreased","Increased lymphoblasts (in CML)","chk"]]}]},
+ { id: "counter", title: "Differential counter", lede: "Count by keyboard or tap, or let the trained model classify cell images. Apply the result to fill blast %, absolute counts and marrow fractions.", custom: "counter" },
+ { id: "marrow", title: "Bone marrow", lede: "Aspirate and trephine. Blast % should include blast equivalents (promonocytes; abnormal promyelocytes in APL).", sets: [
+   { legend: "Aspirate", fields: [
+     ["bmBlast","BM blasts + equivalents","num","%"],["bmErythroidPct","Erythroid cells","num","% nucleated"],["proEryPct","Proerythroblasts","num","%",'WHO-HAEM5 AEL: ≥30% proerythroblasts with erythroid predominance (usually ≥80%). State your denominator.'],
+     ["bmMaturingGranPct","Maturing granulocytes","num","% nucleated"],["bmMonocyticPct","Monocytes + precursors","num","% nucleated"],["ringSid","Ring sideroblasts","num","% erythroblasts"],
+     ["dysEry","Dyserythropoiesis ≥10%","chk"],["dysGran","Dysgranulopoiesis ≥10%","chk"],["dysMega","Dysmegakaryopoiesis ≥10%","chk"],["auer","Auer rods","chk"],
+     ["bmAspirate","Aspirate description","area"]]},
+   { legend: "Trephine", fields: [
+     ["bmCellularity","Cellularity","num","%"],["fibrosis","Reticulin fibrosis grade","sel",[["","—"],["0","MF-0"],["1","MF-1"],["2","MF-2"],["3","MF-3"]]],
+     ["megaMorph","Megakaryocyte pattern","sel",[["","—"],["PV","PV-type: pleomorphic mature, panmyelosis"],["ET","ET-type: large mature hyperlobulated"],["PMF","PMF-type: atypical, clustered, hyperchromatic"],["dys","Dysplastic (micromegakaryocytes)"]]],
+     ["bmTrephine","Trephine description & IHC","area"]]},
+   { legend: "Mast cells", fields: [
+     ["mcAggregates","Multifocal dense mast cell aggregates (≥15 cells)","chk"],["mcAtypical25",">25% spindle/atypical mast cells","chk"],["mcCD25","CD2 / CD25 / CD30 on mast cells","chk"],["tryptase","Serum tryptase","num","ng/mL"]]}]},
+ { id: "flow", title: "Immunophenotype", lede: "Flow cytometry and cytochemistry used for lineage assignment.", sets: [
+   { legend: "Blast lineage", fields: [
+     ["flowLineage","Blast lineage","sel",[["unknown","Not assessed"],["myeloid","Myeloid"],["B","B-lymphoblastic"],["T","T-lymphoblastic"],["B/myeloid","Mixed B/myeloid"],["T/myeloid","Mixed T/myeloid"],["MPAL-other","Mixed, other"],["ambiguous","Ambiguous, NOS"],["undiff","Undifferentiated"]]],
+     ["mpoPos","≥3% MPO/SBB-positive blasts","sel",yn],["megaMarkers","CD41 / CD61 / CD42b on blasts","chk"],["basoMetachromasia","Toluidine blue metachromasia","chk"],
+     ["monoPartition","Abnormal monocyte subset partitioning","chk"],["etp","ETP immunophenotype","chk"],
+     ["ballGenetic","B-ALL genetic subgroup","sel",[["","—"],["hyperdiploid","High hyperdiploidy"],["hypodiploid","Hypodiploidy"],["iAMP21","iAMP21"],["BCR::ABL1","BCR::ABL1"],["BCR::ABL1-like","BCR::ABL1-like"],["KMT2A","KMT2A-r"],["ETV6::RUNX1","ETV6::RUNX1"],["ETV6::RUNX1-like","ETV6::RUNX1-like"],["TCF3::PBX1","TCF3::PBX1"],["IGH::IL3","IGH::IL3"],["TCF3::HLF","TCF3::HLF"],["other","Other defined"]]],
+     ["flowText","Flow cytometry summary","area"]]}]},
+ { id: "genetics", title: "Cytogenetics & molecular", lede: "Karyotype, FISH and NGS. WHO-HAEM5 classification is genetics-first wherever a defining abnormality exists.", sets: [
+   { legend: "Fusions & rearrangements", fields: [["fusions","","multi",FUS]] },
+   { legend: "Karyotype", fields: [["cyto","","multi",CYTO],["del5qOthers","Abnormalities besides del(5q)","num","count"],["karyotype","ISCN karyotype","text"]]},
+   { legend: "Mutations", fields: [
+     ["npm1","NPM1","chk"],["cebpa","CEBPA (biallelic or bZIP in-frame)","chk"],["tp53Count","TP53 mutations","num","n"],["tp53VAF","TP53 highest VAF","num","%"],["tp53CopyLoss","TP53 copy loss / cnLOH","chk"],
+     ["sf3b1VAF","SF3B1 VAF","num","%"],["jak2","JAK2 V617F","chk"],["jak2ex12","JAK2 exon 12","chk"],["calr","CALR","chk"],["mpl","MPL","chk"],["csf3r","CSF3R","chk"],["kit","KIT D816V / activating KIT","chk"],
+     ["ras","RAS pathway (NRAS/KRAS/PTPN11/NF1/CBL)","chk"],["gata1","GATA1","chk"],["otherMutVAF","Other myeloid-gene mutation, max VAF","num","%"]]},
+   { legend: "Myelodysplasia-related genes", fields: [["mrGenes","","multi",HAEM5.MR_GENES.map(g => [g])]] },
+   { legend: "Report text", fields: [["ngsText","NGS / FISH summary","area"]]}]},
+ { id: "lymphoid", title: "Lymphoid & plasma cell", lede: "Rule helpers for CLL/MBL and plasma cell disorders (IMWG). For lymphoma on tissue, choose the entity from the catalogue in the report.", sets: [
+   { legend: "B-cell clone (flow)", fields: [["clonalB","Clonal B cells","num","×10⁹/L"],["cllPhenotype","CLL phenotype (CD5+ CD23+ CD200+, dim sIg)","sel",yn]]},
+   { legend: "Plasma cells", fields: [["bmpcPct","Clonal BM plasma cells","num","%"],["mProtein","Serum M-protein","num","g/L"],["mProteinIgM","IgM paraprotein","chk"],["crab","CRAB feature attributable","chk"],["flc100","Involved/uninvolved FLC ratio ≥100","chk"],["mri","> 1 focal lesion on MRI","chk"],["plasmacytoma","Biopsy-proven plasmacytoma","chk"],["plasmacytomaSolitary","Single lesion; imaging otherwise clear","chk"],
+     ["pbPlasmaPct","Circulating plasma cells","num","% WBC"],["pcClonal","Circulating plasma cells clonal by flow","chk"]]},
+   { legend: "Tissue biopsy", fields: [["tissueSite","Site","text"],["tissueMorph","Morphology","area"],["tissueIHC","Immunohistochemistry / ISH (incl. EBER, Ki-67)","area"],["tissueFISH","FISH (MYC, BCL2, BCL6…)","text"]]}]},
+ { id: "report", title: "Report", lede: "Choose the integrated diagnosis, add a comment, then copy the synoptic report into your LIS or word processor.", custom: "report" }
+];
+
+/* ---------------- state ---------------- */
+let state = store.get("haem5.case") || null;
+let isExample = false;
+const blank = () => ({ fusions: [], cyto: [], mrGenes: [], flowLineage: "unknown" });
+
+const EXAMPLES = {
+  mds: { name: "MDS with increased blasts", data: { labNo:"BM/26/1043", patient:"Example A", age:67, sex:"M", clinician:"Dr R. Sen, Haematology", dateRec:"28/10/2026", specimen:"PB film; BM aspirate + trephine (R PSIS)", clinical:"Progressive fatigue, transfusion-dependent anaemia for 4 months. No prior chemotherapy.",
+    hb:7.8, wbc:2.9, anc:0.9, amc:0.31, monoPct:7, plt:54, pbBlast:2, bmBlast:12, bmCellularity:70, fibrosis:"1", dysGran:true, dysMega:true, ringSid:4, flowLineage:"myeloid", mpoPos:"yes",
+    cyto:["mono7"], mrGenes:["ASXL1","SRSF2"], tp53Count:0, karyotype:"46,XY,del(7)(q22q36)[14]/46,XY[6]", ngsText:"ASXL1 c.1934dupG (VAF 31%); SRSF2 P95H (VAF 38%). TP53 wild-type.",
+    pbFilm:"Pancytopenia. Hypogranular neutrophils with pseudo-Pelger forms. Occasional blasts.", bmAspirate:"Cellular particles. Dysgranulopoiesis (~30% of neutrophils); micromegakaryocytes and separated nuclear lobes. Blasts 12%; no Auer rods.",
+    bmTrephine:"Hypercellular (70%) for age. CD34+ cells 10–12% with small clusters. Reticulin MF-1.", fusions:[] } },
+  aml: { name: "AML with NPM1 mutation", data: { labNo:"BM/26/1088", patient:"Example B", age:52, sex:"F", clinical:"Fever and gum bleeding, 2 weeks.", specimen:"PB; BM aspirate",
+    hb:8.4, wbc:46, anc:3.1, plt:38, pbBlast:62, bmBlast:78, flowLineage:"myeloid", mpoPos:"yes", bmMonocyticPct:22, bmMaturingGranPct:8, npm1:true, fusions:[], cyto:[], mrGenes:[],
+    ngsText:"NPM1 type A (VAF 41%); FLT3-ITD (allelic ratio 0.6); DNMT3A R882H.", karyotype:"46,XX[20]" } },
+  cmml: { name: "CMML", data: { labNo:"BM/26/1102", patient:"Example C", age:74, sex:"M", clinical:"Persistent monocytosis for 6 months; splenomegaly 3 cm.", specimen:"PB; BM aspirate + trephine",
+    hb:10.6, wbc:15.2, anc:7.1, amc:3.8, monoPct:25, plt:98, pbBlast:2, bmBlast:6, dysGran:true, monoPartition:true, splenomegaly:true, mrGenes:["SRSF2","ASXL1"], otherMutVAF:42, fusions:[], cyto:[],
+    ngsText:"TET2 (two mutations, VAF 42%, 39%); SRSF2 P95L; ASXL1 G646fs.", karyotype:"46,XY[20]", flowLineage:"myeloid" } },
+  pmf: { name: "Primary myelofibrosis", data: { labNo:"BM/26/1120", patient:"Example D", age:61, sex:"F", clinical:"Massive splenomegaly, weight loss.", specimen:"PB; trephine (dry tap)",
+    hb:9.1, wbc:13.4, plt:310, pbBlast:1, bmBlast:2, megaMorph:"PMF", fibrosis:"3", splenomegaly:true, ldhHigh:true, leukoerythro:true, jak2:true, fusions:[], cyto:[], mrGenes:[],
+    pbFilm:"Leukoerythroblastic film with teardrop poikilocytes.", bmTrephine:"Clustered atypical megakaryocytes with cloud-like nuclei; MF-3 reticulin with collagen.", ngsText:"JAK2 V617F (VAF 48%)." } }
+};
+
+function fillExamplesSel() { const s = $("#exampleSel"); for (const [k, v] of Object.entries(EXAMPLES)) s.append(el("option", { value: k }, v.name)); }
+function loadCase(obj, example) { state = Object.assign(blank(), JSON.parse(JSON.stringify(obj))); isExample = !!example;
+  if (state.counts && typeof cnt !== "undefined") { cnt.PB = { ...(state.counts.PB || {}) }; cnt.BM = { ...(state.counts.BM || {}) }; } $("#exTag").hidden = !isExample; renderForms(); recompute(); }
+
+/* ---------------- forms ---------------- */
+function fieldEl([id, label, type, opt, hint]) {
+  const v = state[id];
+  if (type === "chk") { const i = el("input", { type: "checkbox", id: "f_" + id }); i.checked = !!v;
+    i.addEventListener("change", () => { state[id] = i.checked; changed(); }); return el("label", { class: "chk", for: "f_" + id }, i, label); }
+  if (type === "multi") { const box = el("div", { class: "chips f wide" });
+    for (const [k, lab] of opt) { const i = el("input", { type: "checkbox", id: `f_${id}_${k}` }); i.checked = (state[id] || []).includes(k);
+      i.addEventListener("change", () => { const a = new Set(state[id] || []); i.checked ? a.add(k) : a.delete(k); state[id] = [...a]; changed(); });
+      box.append(el("label", { class: "chip" + (/::|-r$|[A-Z0-9]{4}/.test(lab || k) ? " mono" : ""), for: `f_${id}_${k}` }, i, lab || k)); }
+    return box; }
+  const wrap = el("div", { class: "f" + (type === "area" ? " wide" : "") });
+  const lab = el("label", { for: "f_" + id }, label, opt && typeof opt === "string" ? el("span", { class: "u" }, " " + opt) : null);
+  let inp;
+  if (type === "sel") { inp = el("select", { id: "f_" + id }); for (const [k, t] of opt) inp.append(el("option", { value: k }, t)); inp.value = v ?? opt[0][0]; }
+  else if (type === "area") inp = el("textarea", { id: "f_" + id });
+  else inp = el("input", { id: "f_" + id, type: type === "num" ? "number" : "text", step: "any", inputmode: type === "num" ? "decimal" : null });
+  if (type !== "sel") inp.value = v ?? "";
+  inp.addEventListener("input", () => { state[id] = type === "num" ? (inp.value === "" ? "" : +inp.value) : inp.value; changed(); });
+  wrap.append(lab, inp); if (hint) wrap.append(el("span", { class: "hint" }, hint));
+  return wrap;
+}
+let current = "case";
+function renderRail() { const r = $("#rail"); r.innerHTML = "";
+  SECTIONS.forEach((s, i) => r.append(el("button", { class: s.id === current ? "on" : "", onclick: () => show(s.id) }, el("span", { class: "n" }, String(i + 1).padStart(2, "0")), s.title))); }
+function show(id) { current = id; document.querySelectorAll("section.pane").forEach(p => p.classList.toggle("on", p.id === "p_" + id)); renderRail(); if (id === "report") renderReport(); window.scrollTo({ top: 0 }); }
+function renderForms() { setTimeout(() => { drawFieldStats(); drawGallery(); });
+  const m = $("#main"); m.innerHTML = "";
+  for (const s of SECTIONS) {
+    const p = el("section", { class: "pane" + (s.id === current ? " on" : ""), id: "p_" + s.id }, el("h2", {}, s.title), el("p", { class: "lede" }, s.lede));
+    if (s.custom === "counter") p.append(counterUI());
+    else if (s.custom === "report") p.append(reportUI());
+    else if (typeof s.render === "function") p.append(s.render());
+    else for (const set of s.sets) { const fs = el("fieldset", {}, el("legend", {}, set.legend)); const g = el("div", { class: "grid" });
+      set.fields.forEach(f => g.append(fieldEl(f))); fs.append(g); p.append(fs); }
+    m.append(p);
+  }
+  renderRail(); drawKeys(); drawThumbs();
+}
+let saveT;
+function changed() { if (isExample) { isExample = false; $("#exTag").hidden = true; } clearTimeout(saveT); saveT = setTimeout(() => store.set("haem5.case", state), 400); recompute(); }
+
+/* ---------------- live WHO-HAEM5 panel ---------------- */
+let lastResult = null;
+function engineInput() { const c = { ...state };
+  c.mpoPos = state.mpoPos || ""; c.cllPhenotype = state.cllPhenotype || "";
+  if (c.cllPhenotype === "") delete c.cllPhenotype;
+  return c; }
+function recompute() {
+  lastResult = HAEM5.classify(engineInput());
+  const L = $("#live"); L.innerHTML = "";
+  L.append(el("div", { class: "panelhead" }, el("h3", {}, "WHO-HAEM5 suggestion"), el("span", {}, `${lastResult.candidates.length} candidate${lastResult.candidates.length === 1 ? "" : "s"}`)));
+  lastResult.warnings.forEach(w => L.append(el("div", { class: "warnbox" }, w)));
+  lastResult.candidates.forEach((cd, i) => {
+    const pill = { "criteria met": "met", probable: "prob", consider: "cons" }[cd.status];
+    const box = el("div", { class: "cand" + (i === 0 ? " top" : "") },
+      el("div", { class: "fam" }, cd.family),
+      el("div", { class: "ent" }, HAEM5.diagnosisLine(cd)),
+      el("div", {}, el("span", { class: "pill " + pill }, cd.status)),
+      cd.met.length ? el("ul", {}, cd.met.map(x => el("li", {}, x))) : null,
+      cd.missing.length ? el("ul", { class: "miss" }, cd.missing.map(x => el("li", {}, "Needed: " + x))) : null,
+      cd.notes.length ? el("div", { class: "notes" }, cd.notes.join(" ")) : null,
+      el("div", {}, el("button", { class: "btn sm", onclick: () => { state.dx = HAEM5.diagnosisLine(cd); state.dxFamily = cd.family; changed(); show("report"); toast("Diagnosis set"); } }, "Use as diagnosis")));
+    L.append(box);
+  });
+  L.append(el("p", { class: "disclaim" }, "Rule-based suggestions from the data entered (Khoury 2022; Alaggio 2022; IMWG for plasma cell disorders). Not a medical device. The reporting pathologist makes the diagnosis."));
+}
+
+/* ---------------- differential counter ---------------- */
+const CELLS = [
+  ["blast","Blast (myeloblast)","1",true],["monoblast","Monoblast","2",true],["promonocyte","Promonocyte","3",true],
+  ["promyelocyte","Promyelocyte","4"],["myelocyte","Myelocyte","5"],["metamyelocyte","Metamyelocyte","6"],
+  ["band_neutrophil","Band neutrophil","7"],["segmented_neutrophil","Segmented neutrophil","8"],["eosinophil","Eosinophil","9"],
+  ["basophil","Basophil","0"],["monocyte","Monocyte","q"],["lymphocyte","Lymphocyte","w"],["atypical_lymphocyte","Atypical / reactive lymphocyte","e"],
+  ["plasma_cell","Plasma cell","r"],["proerythroblast","Proerythroblast","t"],["erythroblast","Erythroblast (later stages)","y"],
+  ["mast_cell","Mast cell","u"],["hairy_cell","Hairy cell","a"],["immature_lymphocyte","Immature / abnormal lymphoid cell","s"],
+  ["other","Other / unclassified","i"],["smudge","Smudge cell","o",false,true],["platelet","Platelet / clump","p",false,true],["artefact","Artefact","d",false,true]];
+const cnt = store.get("haem5.counts") || { PB: {}, BM: {} };
+let cntSpec = "PB", target = 200, cntHistory = [];
+function totals(spec) { const c = cnt[spec]; let n = 0; for (const [k,,, , ex] of CELLS) if (!ex) n += c[k] || 0; return n; }
+function bump(k, d = 1) { const c = cnt[cntSpec]; c[k] = Math.max(0, (c[k] || 0) + d); if (d > 0) cntHistory.push([cntSpec, k]); store.set("haem5.counts", cnt); drawKeys(); }
+function counterUI() {
+  const box = el("div");
+  const top = el("div", { class: "cnt-top" },
+    el("div", { class: "seg", id: "specSeg" }, ["PB", "BM"].map(s => el("button", { class: s === cntSpec ? "on" : "", onclick: () => { cntSpec = s; drawKeys(); } }, s === "PB" ? "Blood film" : "Marrow aspirate"))),
+    el("label", { class: "chk" }, "Target ", (() => { const s = el("select", { id: "tgt" }, [100, 200, 300, 500].map(n => el("option", { value: n }, n))); s.value = target; s.onchange = () => { target = +s.value; drawKeys(); }; return s; })()),
+    el("div", { class: "total", id: "tot" }),
+    el("button", { class: "btn sm", onclick: () => { const h = cntHistory.pop(); if (h) { cnt[h[0]][h[1]]--; store.set("haem5.counts", cnt); drawKeys(); } } }, "Undo (Backspace)"),
+    el("span", { id: "resetWrap" }, el("button", { class: "btn sm ghost", onclick: askReset }, "Reset")));
+  box.append(el("fieldset", {}, el("legend", {}, "Manual count"), top, el("div", { class: "keys", id: "keys" }),
+    el("div", { class: "summary-row", id: "cntSummary" }),
+    el("div", { class: "toolbar" }, el("button", { class: "btn primary", onclick: () => applyCounts() }, "Apply to case"), el("span", { class: "hint" }, "Writes blasts %, monocyte/eosinophil absolute counts (from WBC), immature myeloid %, and marrow fractions."))));
+  box.append(aiUI());
+  setTimeout(loadBuiltinModel, 300);
+  box.append(galleryUI());
+  return box;
+}
+function askReset() { const w = $("#resetWrap"); w.innerHTML = "";
+  w.append(el("span", { class: "confirm" }, `Reset ${cntSpec} count?`, el("button", { class: "btn sm", onclick: () => { cnt[cntSpec] = {}; cntHistory = cntHistory.filter(h => h[0] !== cntSpec); store.set("haem5.counts", cnt); restore(); drawKeys(); } }, "Reset"), el("button", { class: "btn sm ghost", onclick: restore }, "Cancel")));
+  function restore() { w.innerHTML = ""; w.append(el("button", { class: "btn sm ghost", onclick: askReset }, "Reset")); } }
+function drawKeys() {
+  const K = $("#keys"); if (!K) return; const c = cnt[cntSpec], n = totals(cntSpec);
+  document.querySelectorAll("#specSeg button").forEach((b, i) => b.classList.toggle("on", ["PB", "BM"][i] === cntSpec));
+  K.innerHTML = "";
+  for (const [k, name, kb, blasty, excl] of CELLS) {
+    const v = c[k] || 0;
+    K.append(el("button", { class: "key" + (blasty ? " blasty" : "") + (excl ? " excl" : ""), onclick: () => bump(k), title: `Shortcut: ${kb.toUpperCase()}` },
+      el("span", { class: "kb" }, kb.toUpperCase()), el("span", { class: "nm" }, name), el("span", { class: "ct" }, v),
+      el("span", { class: "pc" }, excl ? "" : n ? (100 * v / n).toFixed(1) + "%" : "—")));
+  }
+  $("#tot").innerHTML = ""; $("#tot").append(String(n), el("small", {}, ` / ${target} cells`), el("div", { class: "bar" }, el("i", { style: `width:${Math.min(100, 100 * n / target)}%` })));
+  const d = derivedFromCount(cntSpec);
+  const S = $("#cntSummary"); S.innerHTML = "";
+  S.append(el("span", {}, "Blasts + equivalents ", el("b", {}, d.blast.toFixed(1) + "%")));
+  if (cntSpec === "PB") S.append(el("span", {}, "Monocytes ", el("b", {}, d.mono.toFixed(1) + "%")), el("span", {}, "Immature myeloid ", el("b", {}, d.imm.toFixed(1) + "%")));
+  else S.append(el("span", {}, "Erythroid ", el("b", {}, d.ery.toFixed(1) + "%")), el("span", {}, "Maturing granulocytes ", el("b", {}, d.gran.toFixed(1) + "%")), el("span", {}, "M:E ", el("b", {}, d.me)));
+  if (n >= target) S.append(el("span", { class: "pill met" }, "Target reached"));
+}
+function derivedFromCount(spec) {
+  const c = cnt[spec], n = totals(spec) || 1, g = k => c[k] || 0, p = x => 100 * x / n;
+  const blast = g("blast") + g("monoblast") + g("promonocyte");
+  const gran = g("promyelocyte") + g("myelocyte") + g("metamyelocyte") + g("band_neutrophil") + g("segmented_neutrophil") + g("eosinophil") + g("basophil");
+  const ery = g("proerythroblast") + g("erythroblast");
+  return { blast: p(blast), mono: p(g("monocyte")), eos: p(g("eosinophil")), baso: p(g("basophil")), imm: p(g("promyelocyte") + g("myelocyte") + g("metamyelocyte")),
+    neut: p(g("band_neutrophil") + g("segmented_neutrophil")), ery: p(ery), proEry: p(g("proerythroblast")), gran: p(g("promyelocyte") + g("myelocyte") + g("metamyelocyte") + g("band_neutrophil") + g("segmented_neutrophil")),
+    monocytic: p(g("monoblast") + g("promonocyte") + g("monocyte")), pc: p(g("plasma_cell")), me: ery ? (gran / ery).toFixed(1) + ":1" : "—", n: totals(spec) };
+}
+const r1 = x => Math.round(x * 10) / 10, r2 = x => Math.round(x * 100) / 100;
+function applyCounts(spec, quiet) {
+  const s = spec || cntSpec, d = derivedFromCount(s);
+  if (!d.n) { toast("Count some cells first"); return; }
+  if (s === "PB") { state.pbBlast = r1(d.blast); if (cnt.PB.plasma_cell) state.pbPlasmaPct = r1(d.pc); state.monoPct = r1(d.mono); state.basoPct = r1(d.baso); state.pbImmMyeloidPct = r1(d.imm);
+    if (state.wbc) { state.amc = r2(state.wbc * d.mono / 100); state.aec = r2(state.wbc * d.eos / 100); if (!state.anc) state.anc = r2(state.wbc * d.neut / 100); } }
+  else { state.bmBlast = r1(d.blast); state.bmErythroidPct = r1(d.ery); state.proEryPct = r1(d.proEry); state.bmMaturingGranPct = r1(d.gran); state.bmMonocyticPct = r1(d.monocytic); if (d.pc) state.bmpcPct = state.bmpcPct || r1(d.pc); }
+  state["diff" + s] = CELLS.filter(([k,,,, ex]) => !ex && cnt[s][k]).map(([k, name]) => `${name} ${r1(100 * cnt[s][k] / d.n)}%`).join("; ") + ` (${d.n} cells)`;
+  state.counts = cnt;
+  if (quiet) { changed(); return; }
+  renderForms(); show("counter"); changed(); toast(`${s === "PB" ? "Blood" : "Marrow"} differential applied`);
+}
+document.addEventListener("keydown", e => {
+  if (current !== "counter" || e.target.matches("input,textarea,select") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "Backspace") { e.preventDefault(); const h = cntHistory.pop(); if (h) { cnt[h[0]][h[1]]--; store.set("haem5.counts", cnt); drawKeys(); } return; }
+  const hit = CELLS.find(c => c[2] === e.key.toLowerCase()); if (hit) { e.preventDefault(); bump(hit[0]); }
+});
+
+/* ---------------- AI-assisted classification (ONNX Runtime Web) ---------------- */
+const AI = { session: null, meta: null, items: [], mode: "field" };
+function aiUI() {
+  const fs = el("fieldset", {}, el("legend", {}, "AI-assisted count"));
+  const st = el("div", { class: "status" + (AI.statusErr ? " err" : ""), id: "aiStatus" }, AI.statusMsg || "No model loaded. Train one with the HAEM5 Colab notebook, then load cell_model.onnx and cell_labels.json together.");
+  const mIn = el("input", { type: "file", id: "modelFiles", multiple: true, accept: ".onnx,.json", hidden: true });
+  mIn.addEventListener("change", () => loadModel([...mIn.files]));
+  const iIn = el("input", { type: "file", id: "cellFiles", multiple: true, accept: "image/*", hidden: true });
+  iIn.addEventListener("change", () => ingest([...iIn.files]));
+  // Phone: opens the rear camera directly; each shot is analysed as it is taken.
+  const camIn = el("input", { type: "file", id: "camShot", accept: "image/*", capture: "environment", hidden: true });
+  camIn.addEventListener("change", () => { if (camIn.files.length) ingest([...camIn.files]); camIn.value = ""; });
+  const modeSeg = el("div", { class: "seg", id: "aiMode" }, [["field", "Slide photos (many cells)"], ["cell", "Single-cell crops"]].map(([k, n]) =>
+    el("button", { class: AI.mode === k ? "on" : "", onclick: () => { AI.mode = k; document.querySelectorAll("#aiMode button").forEach((b, i) => b.classList.toggle("on", ["field", "cell"][i] === k)); } }, n)));
+  const drop = el("div", { class: "ai-drop", id: "aiDrop" }, "Drop images here, or ", el("button", { class: "btn sm", onclick: () => iIn.click() }, "Choose images"), " ",
+    el("button", { class: "btn sm", onclick: () => camIn.click(), title: "Opens the camera on phones and tablets" }, "Take photo"),
+    el("div", { class: "hint" }, "Slide photos: take photos through the 100× oil objective in the monolayer; the app finds every nucleated cell, crops it and classifies it. Images stay on this device."));
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); const f = [...e.dataTransfer.files]; if (f.some(x => /\.(onnx|json)$/i.test(x.name))) loadModel(f); else ingest(f.filter(x => x.type.startsWith("image/"))); });
+  fs.append(el("div", { class: "toolbar" }, el("button", { class: "btn", onclick: () => mIn.click() }, "Load model files"), mIn, iIn,
+    el("button", { class: "btn primary", onclick: addAIToCount }, "Add reviewed cells to count"), camIn, el("button", { class: "btn ghost sm", onclick: () => { AI.items = []; drawThumbs(); } }, "Clear images")),
+    el("div", { class: "toolbar" }, el("span", { class: "hint" }, "Images are:"), modeSeg), st, drop, el("div", { class: "summary-row", id: "fieldStats" }), el("div", { class: "thumbs", id: "thumbs" }));
+  return fs;
+}
+function aiStatus(msg, err) { AI.statusMsg = msg; AI.statusErr = !!err; const s = $("#aiStatus"); if (s) { s.textContent = msg; s.classList.toggle("err", !!err); } }
+async function initRuntime() {
+  for (let i = 0; i < 60 && !window.ort; i++) await new Promise(r => setTimeout(r, 250));  // the runtime script may still be downloading
+  if (!window.ort) throw new Error("The ONNX runtime script did not load (offline or blocked).");
+  ort.env.wasm.numThreads = 1;
+  if (!ort.env.wasm.wasmBinary) {
+    const r = await fetch(window.HAEM5_WASM_URL || "ort-wasm-simd-threaded.wasm");
+    if (!r.ok) throw new Error("Could not load the runtime engine file.");
+    ort.env.wasm.wasmBinary = await r.arrayBuffer();
+  }
+  ort.env.wasm.wasmPaths = { mjs: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.mjs" };
+}
+async function startSession(bytes, meta, source) {
+  if (!Array.isArray(meta.classes)) throw new Error("cell_labels.json has no class list.");
+  await initRuntime();
+  AI.session = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
+  AI.meta = meta; AI.source = source;
+  aiStatus(`Model ready (${source}): ${meta.model || "model"} · ${meta.present_classes?.length || meta.classes.length} classes${meta.test ? ` · test macro-F1 ${meta.test.macro_f1.toFixed(3)}` : ""}${meta.thresholds?.blast ? ` · blast threshold ${meta.thresholds.blast}` : ""} · 4-rotation averaging on. Add cell images.`);
+  if (AI.items.length) classifyAll();
+}
+async function loadModel(files) {
+  if (window.HAEM5_AI_ALLOWED === false) { aiStatus("No consent recorded for AI-assisted analysis for this patient. Count manually.", true); return; }
+  const onnx = files.find(f => /\.onnx$/i.test(f.name)), js = files.find(f => /\.json$/i.test(f.name));
+  if (!onnx || !js) { aiStatus("Select both files together: cell_model.onnx and cell_labels.json.", true); return; }
+  try {
+    aiStatus("Loading model…");
+    await startSession(new Uint8Array(await onnx.arrayBuffer()), JSON.parse(await js.text()), "loaded from file");
+  } catch (e) { AI.session = null; aiStatus("Model could not be loaded: " + (e.message || e) + " Manual counting still works.", true); }
+}
+/* Built-in model: shipped with the app in parts (each under the host's file-size limit) and joined here, byte for byte. */
+function loadBuiltinModel() {
+  const B = window.HAEM5_BUILTIN_MODEL;
+  if (!B || AI.session) return Promise.resolve();
+  if (AI.loading) return AI.loading;
+  AI.loading = (async () => {
+    try {
+      aiStatus("Loading the built-in HAEM5 cell model (16 MB; cached after the first visit)…");
+      const parts = await Promise.all(B.parts.map(async u => { const r = await fetch(u); if (!r.ok) throw new Error(`could not fetch ${u} (${r.status})`);
+        if (B.encoding !== "base64") return new Uint8Array(await r.arrayBuffer());
+        const t = (await r.text()).replace(/\s+/g, ""), bin = atob(t), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }));
+      const bytes = new Uint8Array(parts.reduce((n, p) => n + p.length, 0)); let o = 0; for (const p of parts) { bytes.set(p, o); o += p.length; }
+      if (B.size && bytes.length !== B.size) throw new Error("model file is incomplete");
+      const meta = B.labels || await (await fetch(B.labelsUrl)).json();
+      if (!AI.session) await startSession(bytes, meta, "built-in");
+    } catch (e) { if (!AI.session) aiStatus("The built-in model could not be loaded (" + (e.message || e) + "). Use Load model files, or count manually.", true); }
+    finally { AI.loading = null; }
+  })();
+  return AI.loading;
+}
+function preprocess(rgba, size, mean, std) {
+  const n = size * size, out = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) for (let ch = 0; ch < 3; ch++) out[ch * n + i] = (rgba[i * 4 + ch] / 255 - mean[ch]) / std[ch];
+  return out;
+}
+function softmax(a) { const m = Math.max(...a); const e = a.map(x => Math.exp(x - m)); const s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); }
+// Test-time augmentation: the cell is classified at 0°, 90°, 180° and 270° in one batch and the probabilities averaged.
+const TTA_ROT = [0, 1, 2, 3];
+async function imgToTensor(url) {
+  const size = AI.meta.img_size || 224, img = new Image(); img.src = url; await img.decode();
+  const n = size * size * 3, out = new Float32Array(TTA_ROT.length * n);
+  TTA_ROT.forEach((r, i) => {
+    const cv = document.createElement("canvas"); cv.width = cv.height = size; const cx = cv.getContext("2d", { willReadFrequently: true });
+    cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = "high";
+    cx.translate(size / 2, size / 2); cx.rotate(r * Math.PI / 2); cx.drawImage(img, -size / 2, -size / 2, size, size);
+    out.set(preprocess(cx.getImageData(0, 0, size, size).data, size, AI.meta.mean, AI.meta.std), i * n);
+  });
+  return new ort.Tensor("float32", out, [TTA_ROT.length, 3, size, size]);
+}
+/* Pure decision rule (tested): average softmax over TTA rows, mask absent classes, then apply the
+   calibrated blast threshold from cell_labels.json so borderline blasts are called (and flagged) rather than missed. */
+function decideLabel(logits, rows, meta) {
+  const C = meta.classes.length, allowed = new Set(meta.present_classes || meta.classes), avg = new Array(C).fill(0);
+  for (let r = 0; r < rows; r++) {
+    const row = Array.from(logits.slice(r * C, (r + 1) * C)).map((v, k) => allowed.has(meta.classes[k]) ? v : -1e9);
+    softmax(row).forEach((p, k) => { avg[k] += p / rows; });
+  }
+  let k = avg.indexOf(Math.max(...avg)), byThreshold = false;
+  const b = meta.classes.indexOf("blast"), thr = meta.thresholds && meta.thresholds.blast;
+  if (b >= 0 && thr && k !== b && avg[b] >= thr) { k = b; byThreshold = true; }
+  return { cls: meta.classes[k], conf: avg[k], byThreshold };
+}
+function ingest(files) { return AI.mode === "field" ? addFields(files) : addImages(files); }
+async function addFields(files) {
+  if (window.HAEM5_AI_ALLOWED === false) { aiStatus("No consent recorded for AI-assisted analysis for this patient. Count manually.", true); return; }
+  const fs = state.fieldStats || { fields: 0, cells: 0, platelets: 0, rbc: 0, edge: 0 };
+  let n = 0;
+  for (const f of files) {
+    aiStatus(`Finding cells in ${f.name}…`);
+    const url = URL.createObjectURL(f), img = new Image(); img.src = url;
+    try { await img.decode(); } catch { continue; }
+    const sc = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
+    const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d", { willReadFrequently: true });
+    cx.drawImage(img, 0, 0, W, H);
+    const r = HAEM5DETECT.detect(cx.getImageData(0, 0, W, H).data, W, H);
+    fs.fields++; fs.platelets += r.platelets; fs.rbc += r.rbc;
+    for (const c of r.wbc) {
+      const side = Math.min(c.size, W, H), x = Math.max(0, Math.min(W - side, c.cx - side / 2)), y = Math.max(0, Math.min(H - side, c.cy - side / 2));
+      const out = document.createElement("canvas"); out.width = out.height = 360;
+      out.getContext("2d").drawImage(cv, x, y, side, side, 0, 0, 360, 360);
+      const blob = await new Promise(res => out.toBlob(res, "image/jpeg", 0.92));
+      AI.items.push({ name: `${f.name} · cell ${++n}`, url: URL.createObjectURL(blob), label: null, conf: null, pred: null, edge: c.touchesEdge });
+      fs.cells++; if (c.touchesEdge) fs.edge++;
+    }
+    URL.revokeObjectURL(url);
+  }
+  state.fieldStats = fs; changed(); drawFieldStats(); drawThumbs();
+  if (!AI.session) await loadBuiltinModel();
+  if (AI.session) classifyAll(); else aiStatus(`Found ${n} nucleated cell(s). Load a model to classify them, or label them by hand below.`);
+}
+function pltEstimate(fs) {
+  if (!fs || !fs.fields) return null;
+  const per = fs.platelets / fs.fields;
+  return { per: Math.round(per * 10) / 10, lo: Math.round(per * 15), hi: Math.round(per * 20), perRbc: fs.rbc ? Math.round(1000 * fs.platelets / fs.rbc) : null };
+}
+function drawFieldStats() {
+  const S = document.getElementById("fieldStats"); if (!S) return; S.innerHTML = ""; const fs = state.fieldStats; if (!fs || !fs.fields) return;
+  const p = pltEstimate(fs);
+  S.append(el("span", {}, "Fields ", el("b", {}, fs.fields)), el("span", {}, "Nucleated cells found ", el("b", {}, fs.cells)),
+    el("span", {}, "Platelets / field ", el("b", {}, p.per)), el("span", {}, "≈ platelets ", el("b", {}, `${p.lo}–${p.hi} ×10⁹/L`)),
+    el("span", { class: "hint" }, "Platelet estimate assumes 100× oil fields in the monolayer; confirm against the analyser count."),
+    el("button", { class: "btn sm ghost", onclick: () => { state.fieldStats = null; changed(); drawFieldStats(); } }, "Reset field stats"));
+}
+async function addImages(files) {
+  if (window.HAEM5_AI_ALLOWED === false) { aiStatus("No consent recorded for AI-assisted analysis for this patient. Count manually.", true); return; }
+  for (const f of files) AI.items.push({ name: f.name, url: URL.createObjectURL(f), label: null, conf: null, pred: null });
+  drawThumbs(); if (!AI.session) await loadBuiltinModel(); if (AI.session) classifyAll(); else aiStatus(`${AI.items.length} image(s) added. Load a model to classify them, or label them by hand below.`);
+}
+async function classifyAll() {
+  const todo = AI.items.filter(x => x.pred === null); let i = 0;
+  for (const it of todo) {
+    try {
+      const t = await imgToTensor(it.url); const res = await AI.session.run({ [AI.meta.input_name || AI.session.inputNames[0]]: t });
+      const dcs = decideLabel(res[AI.session.outputNames[0]].data, TTA_ROT.length, AI.meta);
+      it.pred = dcs.cls; it.conf = dcs.byThreshold ? Math.min(dcs.conf, 0.59) : dcs.conf; it.byThreshold = dcs.byThreshold; if (!it.label) it.label = it.pred;
+    } catch (e) { it.pred = "error"; it.conf = 0; }
+    if (++i % 8 === 0) { aiStatus(`Classifying ${i}/${todo.length}…`); drawThumbs(); }
+  }
+  drawThumbs();
+  const low = AI.items.filter(x => x.conf !== null && x.conf < 0.6).length;
+  aiStatus(`Classified ${AI.items.length} cells. ${low ? low + " low-confidence cell(s) highlighted — review before adding." : "Review the labels, then add them to the count."}`);
+}
+function drawThumbs() {
+  const T = $("#thumbs"); if (!T) return; T.innerHTML = "";
+  const opts = CELLS.map(([k, n]) => [k, n]);
+  for (const it of AI.items) {
+    const s = el("select", { "aria-label": "Cell label for " + it.name }, el("option", { value: "" }, "— label —"), opts.map(([k, n]) => el("option", { value: k }, n)));
+    s.value = it.label || ""; s.onchange = () => { it.label = s.value; };
+    T.append(el("div", { class: "th" + ((it.conf !== null && it.conf < 0.6) || it.edge ? " low" : "") }, el("img", { src: it.url, alt: it.name }), s, it.edge ? el("span", { class: "cf" }, "cut by image edge") : null,
+      el("span", { class: "cf" }, it.pred && it.pred !== "error" ? `AI: ${it.pred.replace(/_/g, " ")} ${(it.conf * 100).toFixed(0)}%` : it.pred === "error" ? "AI: failed" : "not classified")));
+  }
+}
+async function thumbOf(url) {
+  try { const img = new Image(); img.src = url; await img.decode();
+    const cv = document.createElement("canvas"); cv.width = cv.height = 72; cv.getContext("2d").drawImage(img, 0, 0, 72, 72);
+    return cv.toDataURL("image/jpeg", 0.72); } catch { return null; }
+}
+async function addAIToCount() {
+  const lab = AI.items.filter(x => x.label); if (!lab.length) { toast("No labelled cells to add"); return; }
+  const gal = state.cellGallery || [];
+  for (const it of lab) {
+    cnt[cntSpec][it.label] = (cnt[cntSpec][it.label] || 0) + 1;
+    if (gal.length < 600) gal.push({ id: Math.random().toString(36).slice(2, 9), spec: cntSpec, label: it.label, pred: it.pred && it.pred !== "error" ? it.pred : null,
+      conf: it.conf, edge: !!it.edge, src: it.name, thumb: await thumbOf(it.url) });
+  }
+  state.cellGallery = gal; state.counts = cnt;
+  if (AI.items.some(x => x.label && x.pred && x.pred !== "error")) { state.aiUsed = true; changed(); }
+  store.set("haem5.counts", cnt); const n = lab.length; AI.items = AI.items.filter(x => !x.label); drawThumbs(); drawKeys();
+  toast(`${n} cells added to the ${cntSpec === "PB" ? "blood" : "marrow"} count`);
+}
+
+/* ---------------- cell gallery (review by the authorising pathologist) ---------------- */
+let galFilter = "flagged";
+const isFlagged = g => (g.conf !== null && g.conf !== undefined && g.conf < 0.6) || g.edge || (g.pred && g.pred !== g.label) || g.changed;
+function galleryUI() {
+  const fs = el("fieldset", { id: "galleryBox" }, el("legend", {}, "Cell gallery — every counted cell, for review"));
+  fs.append(el("div", { class: "toolbar" }, el("div", { class: "seg", id: "galSeg" }, [["flagged", "Flagged"], ["all", "All cells"]].map(([k, n]) =>
+    el("button", { class: galFilter === k ? "on" : "", onclick: () => { galFilter = k; drawGallery(); } }, n))), el("span", { class: "hint", id: "galInfo" })),
+    el("div", { class: "thumbs", id: "galGrid" }));
+  return fs;
+}
+function drawGallery() {
+  const G = document.getElementById("galGrid"); if (!G) return;
+  document.querySelectorAll("#galSeg button").forEach((b, i) => b.classList.toggle("on", ["flagged", "all"][i] === galFilter));
+  const gal = state.cellGallery || [], flagged = gal.filter(isFlagged);
+  document.getElementById("galInfo").textContent = gal.length ? `${gal.length} cells · ${flagged.length} flagged (low confidence, cut by edge, or label changed). Relabel any cell and the counts update.` : "Cells you add from slide photos appear here, so the authorising pathologist can review them.";
+  G.innerHTML = "";
+  for (const g of (galFilter === "flagged" ? flagged : gal)) {
+    const sel = el("select", { "aria-label": "Label for cell " + g.id }, CELLS.map(([k, n]) => el("option", { value: k }, n)));
+    sel.value = g.label;
+    sel.onchange = () => {
+      const old = g.label, nw = sel.value, c = cnt[g.spec];
+      c[old] = Math.max(0, (c[old] || 0) - 1); c[nw] = (c[nw] || 0) + 1;
+      g.label = nw; g.changed = true; state.relabelled = (state.relabelled || 0) + 1;
+      applyCounts(g.spec, true); drawKeys(); drawGallery(); toast("Relabelled; counts updated");
+    };
+    G.append(el("div", { class: "th" + (isFlagged(g) ? " low" : "") }, g.thumb ? el("img", { src: g.thumb, alt: "cell" }) : el("div", { class: "hint" }, "no image"), sel,
+      el("span", { class: "cf" }, [g.pred ? `AI: ${g.pred.replace(/_/g, " ")} ${Math.round((g.conf || 0) * 100)}%` : "manual", g.edge ? "edge" : "", g.changed ? "relabelled" : ""].filter(Boolean).join(" · "))));
+  }
+}
+
+/* ---------------- report ---------------- */
+function reportUI() {
+  const box = el("div");
+  const allEntities = Object.entries(HAEM5.CATALOG).flatMap(([fam, list]) => list.map(e => [e, fam]));
+  const dl = el("datalist", { id: "entList" }, allEntities.map(([e, f]) => el("option", { value: e }, f)));
+  const dxIn = el("input", { id: "f_dx", list: "entList", placeholder: "Type to search all WHO-HAEM5 entities…", value: state.dx || "" });
+  dxIn.addEventListener("input", () => { state.dx = dxIn.value; const hit = allEntities.find(([e]) => e === dxIn.value); if (hit) state.dxFamily = hit[1]; changed(); renderReport(); });
+  box.append(el("fieldset", {}, el("legend", {}, "Integrated diagnosis"),
+    el("div", { class: "catalog-row" }, dxIn, dl), el("p", { class: "hint" }, "Pick a suggestion from the panel (Use as diagnosis) or search the full WHO-HAEM5 catalogue, including lymphoid, histiocytic and stroma-derived entities. Add qualifiers in free text if needed."),
+    el("div", { class: "grid" }, fieldEl(["comment", "Comment / recommendations", "area"]), fieldEl(["pathologist", "Reporting pathologist", "text"]), fieldEl(["reportDate", "Report date", "text"]))));
+  box.querySelectorAll("textarea, input").forEach(x => x.addEventListener("input", () => renderReport()));
+  box.append(el("div", { class: "toolbar" }, el("button", { class: "btn primary", onclick: copyReport }, "Copy report"), el("button", { class: "btn", onclick: () => { renderReport(true); toast("Report regenerated from case"); } }, "Regenerate from case"),
+    el("span", { class: "hint" }, "Edits made in the box below are kept until you regenerate.")));
+  box.append(el("div", { class: "report" }, el("p", { class: "dxline", id: "dxPreview" }), el("textarea", { id: "reportText", "aria-label": "Report text" })));
+  return box;
+}
+let reportEdited = false;
+function line(label, v, unit) { return (v === "" || v == null) ? null : `${label}: ${v}${unit ? (unit === "%" ? "%" : " " + unit) : ""}`; }
+function buildReport() {
+  const s = state, top = lastResult?.candidates?.[0];
+  const L = [];
+  const H = t => { L.push("", t.toUpperCase(), "-".repeat(t.length)); };
+  const pbOnly = (s.bmBlast === undefined || s.bmBlast === "") && !s.bmAspirate && !s.bmTrephine && !s.bmCellularity && !s.diffBM;
+  L.push(pbOnly ? "PERIPHERAL BLOOD SMEAR REPORT" : "HAEMATOPATHOLOGY REPORT", "Classification: WHO Classification of Haematolymphoid Tumours, 5th edition (WHO-HAEM5, 2022)");
+  L.push("", [line("Lab no.", s.labNo), line("Patient", s.patient), line("Age/Sex", [s.age, s.sex].filter(Boolean).join(" / "))].filter(Boolean).join("   "));
+  L.push([line("Referred by", s.clinician), line("Received", s.dateRec)].filter(Boolean).join("   "));
+  if (s.specimen) L.push(line("Specimen", s.specimen));
+  if (s.clinical) { H("Clinical details"); L.push(s.clinical); }
+  const cbc = [line("Hb", s.hb, "g/dL"), line("Hct", s.hct, "%"), line("WBC", s.wbc, "×10⁹/L"), line("ANC", s.anc, "×10⁹/L"), line("Monocytes", s.amc, "×10⁹/L"), line("Eosinophils", s.aec, "×10⁹/L"), line("Platelets", s.plt, "×10⁹/L")].filter(Boolean);
+  if (cbc.length || s.pbFilm || s.diffPB || s.rbcMorph) { H("Peripheral blood smear");
+    if (cbc.length) L.push("Blood count: " + cbc.join("; "));
+    if (s.rbcMorph) L.push("Red cells: " + s.rbcMorph);
+    if (s.diffPB) L.push("White cells — differential: " + s.diffPB);
+    const nPB = totals("PB"); if (nPB > 0 && nPB < 100) L.push(`Limitation: differential based on only ${nPB} cells because of leucopenia; percentages, including blasts, are imprecise and should be interpreted with caution.`);
+    if (s.pbBlast !== undefined && s.pbBlast !== "") L.push(`Blasts (incl. equivalents): ${s.pbBlast}%`);
+    if (s.pbFilm) L.push(s.pbFilm);
+    if (pbOnly && s.auer) L.push("Auer rods seen.");
+    const pe = pltEstimate(s.fieldStats);
+    if (s.pltMorph || pe) L.push("Platelets: " + [s.pltMorph, pe && `film estimate ~${pe.lo}–${pe.hi} ×10⁹/L (${pe.per}/oil field, ${s.fieldStats.fields} fields)`].filter(Boolean).join("; "));
+    if (s.fieldStats && s.fieldStats.cells) L.push(`Method: ${s.fieldStats.cells} nucleated cells located automatically in ${s.fieldStats.fields} digital fields${s.aiUsed ? " and classified with AI assistance" : ""}; every cell reviewed by the reporting pathologist.`); }
+  const asp = [s.bmAspirate, s.diffBM && "Differential: " + s.diffBM, s.bmBlast !== "" && s.bmBlast != null && `Blasts (incl. equivalents): ${s.bmBlast}%`,
+    s.ringSid !== "" && s.ringSid != null && `Ring sideroblasts: ${s.ringSid}% of erythroblasts`,
+    [s.dysEry && "erythroid", s.dysGran && "granulocytic", s.dysMega && "megakaryocytic"].filter(Boolean).length ? "Dysplasia (≥10%): " + [s.dysEry && "erythroid", s.dysGran && "granulocytic", s.dysMega && "megakaryocytic"].filter(Boolean).join(", ") : null,
+    !pbOnly && s.auer && "Auer rods present"].filter(Boolean);
+  if (asp.length) { H("Bone marrow aspirate"); L.push(...asp); }
+  const tre = [line("Cellularity", s.bmCellularity, "%"), s.fibrosis !== "" && s.fibrosis != null && `Reticulin: MF-${s.fibrosis} (EUMNET grading)`, s.bmTrephine].filter(Boolean);
+  if (tre.length) { H("Trephine biopsy"); L.push(...tre); }
+  const lin = { myeloid: "myeloid", B: "B-lymphoblastic", T: "T-lymphoblastic", "B/myeloid": "mixed B/myeloid", "T/myeloid": "mixed T/myeloid", "MPAL-other": "mixed, other", ambiguous: "ambiguous", undiff: "undifferentiated" }[s.flowLineage];
+  if (s.flowText || lin) { H("Immunophenotyping"); if (lin) L.push("Blast lineage: " + lin); if (s.flowText) L.push(s.flowText); }
+  const genes = [s.karyotype && "Karyotype: " + s.karyotype, (s.fusions || []).length && "Fusions/rearrangements: " + s.fusions.join(", "),
+    (s.cyto || []).length && "Cytogenetic abnormalities: " + s.cyto.map(k => HAEM5.MR_CYTO[k] || "other clonal abnormality").join("; "),
+    s.ngsText].filter(Boolean);
+  if (genes.length) { H("Cytogenetics and molecular genetics"); L.push(...genes); }
+  if (s.tissueSite || s.tissueMorph || s.tissueIHC) { H("Tissue biopsy" + (s.tissueSite ? " — " + s.tissueSite : "")); [s.tissueMorph, s.tissueIHC && "IHC/ISH: " + s.tissueIHC, s.tissueFISH && "FISH: " + s.tissueFISH].filter(Boolean).forEach(x => L.push(x)); }
+  H(pbOnly ? "Impression (WHO-HAEM5)" : "Integrated diagnosis (WHO-HAEM5)");
+  L.push((s.dx || "[Select diagnosis]") + (s.dxAuto && !s.authorised ? "  [system-suggested — pending authorisation]" : ""));
+  if (s.dxFamily) L.push("Family/class: " + s.dxFamily);
+  if (s.dx && pbOnly) L.push("Note: this is a peripheral blood smear assessment. WHO-HAEM5 diagnosis of most haematolymphoid neoplasms requires integration with bone marrow examination, immunophenotyping and cytogenetic/molecular studies; findings are reported as suggestive, pending those results.");
+  const chosen = lastResult?.candidates?.find(c => HAEM5.diagnosisLine(c) === s.dx);
+  if (chosen) { L.push("Criteria documented: " + chosen.met.join("; ") + "."); if (chosen.missing.length) L.push("Outstanding: " + chosen.missing.join("; ") + "."); }
+  if (s.comment) { H("Comment"); L.push(s.comment); }
+  if (s.preparedBy) L.push("", "Prepared by: " + s.preparedBy + (s.preparedOn ? "   Date: " + s.preparedOn : ""));
+  L.push(s.preparedBy ? "" : "", (s.authorised ? "Authorised by: " : "Reported by: ") + (s.pathologist || "____________________") + (s.reportDate ? "   Date: " + s.reportDate : ""));
+  return L.filter(x => x !== null).join("\n").replace(/\n{3,}/g, "\n\n");
+}
+function renderReport(force) {
+  const t = $("#reportText"); if (!t) return; const p = $("#dxPreview"); p.textContent = state.dx || "No diagnosis selected yet";
+  if (force) reportEdited = false;
+  if (!reportEdited) t.value = buildReport();
+  t.oninput = () => { reportEdited = true; };
+}
+async function copyReport() { const t = $("#reportText"); try { await navigator.clipboard.writeText(t.value); toast("Report copied"); } catch { t.focus(); t.select(); toast("Press Ctrl/⌘+C to copy"); } }
+
+/* ---------------- header actions ---------------- */
+$("#exampleSel").addEventListener("change", e => { const k = e.target.value; if (k) loadCase(EXAMPLES[k].data, true); e.target.value = ""; toast("Example loaded"); });
+$("#goReport").addEventListener("click", () => show("report"));
+function newCaseBtn() { const w = $("#newWrap"); w.innerHTML = ""; w.append(el("button", { class: "btn sm", onclick: askNew }, "New case")); }
+function askNew() { const w = $("#newWrap"); w.innerHTML = "";
+  w.append(el("span", { class: "confirm" }, "Clear this case?",
+    el("button", { class: "btn sm", onclick: () => { cnt.PB = {}; cnt.BM = {}; cntHistory = []; store.set("haem5.counts", cnt); current = "case"; loadCase(blank(), false); store.set("haem5.case", state); newCaseBtn(); toast("New case started"); } }, "Clear"),
+    el("button", { class: "btn sm ghost", onclick: newCaseBtn }, "Cancel"))); }
+newCaseBtn();
+
+fillExamplesSel();
+if (window.HAEM5_NO_LOCAL) { loadCase(blank(), false); } else if (state) { loadCase(state, false); } else { loadCase(EXAMPLES.mds.data, true); }
+</script>
+<script>
+/* Showcase layer for the published demo: DPDP notice & consent, privacy centre (rights, breaches,
+   hash-chained audit, export/erase), compliance overview, and a private per-viewer backend
+   (artifact db under data/users/<id>/, which nobody else — the owner included — can read). */
+(function () {
+  "use strict";
+  const PURPOSES = [
+    ["diagnostic_reporting", "Laboratory diagnosis and reporting of the sample", true],
+    ["ai_assisted_analysis", "AI-assisted counting of blood/marrow cell images, reviewed by the pathologist", false],
+    ["research_deidentified", "De-identified data for ethics-approved research", false],
+    ["teaching_deidentified", "De-identified images for medical teaching", false]];
+  const RIGHTS = [["access", "Access: summary of data & sharing (s.11)"], ["correction", "Correction (s.12)"], ["completion", "Completion (s.12)"], ["updating", "Updating (s.12)"],
+    ["erasure", "Erasure (s.12)"], ["nomination", "Nomination (s.14)"], ["grievance", "Grievance (s.13)"], ["withdraw_consent", "Withdraw consent (s.6(4))"]];
+  const DAY = 864e5;
+  const use = n => (window.claude && typeof window.claude.use === "function") ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+  const fmt = t => t ? new Date(t).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  const rid = p => p + "-" + Math.random().toString(16).slice(2, 6).toUpperCase();
+
+  let priv = (store.get("haem5.priv")) || { consents: {}, consentBy: "self", guardian: "", guardianVerify: "", rights: [], breaches: [], audit: [] };
+  let cloud = { db: null, ref: null, mode: "local" };
+
+  /* ---------- hash-chained audit ---------- */
+  async function sha(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+  const body = e => JSON.stringify({ prev: e.prev, ts: e.ts, action: e.action, detail: e.detail ?? null });
+  let auditQ = Promise.resolve();
+  function audit(action, detail) {
+    auditQ = auditQ.then(async () => {
+      const prev = priv.audit.length ? priv.audit[priv.audit.length - 1].hash : "0".repeat(64);
+      const e = { ts: new Date().toISOString(), action, detail, prev }; e.hash = await sha(body(e));
+      priv.audit.push(e); if (priv.audit.length > 400) priv.audit = priv.audit.slice(-400);
+      persist(); if (current === "privacy") drawAudit();
+    });
+  }
+  async function verifyChain(list) {
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      if (i > 0 && e.prev !== list[i - 1].hash) return { ok: false, at: i + 1, why: "link broken" };
+      if (await sha(body(e)) !== e.hash) return { ok: false, at: i + 1, why: "entry altered" };
+    }
+    return { ok: true, n: list.length };
+  }
+
+  /* ---------- persistence ---------- */
+  let saveT;
+  function persist() {
+    store.set("haem5.priv", priv);
+    clearTimeout(saveT);
+    saveT = setTimeout(async () => {
+      if (!cloud.ref) return;
+      try { const cs = { ...state, cellGallery: (state.cellGallery || []).map(g => ({ ...g, thumb: null })) }; await cloud.ref.set({ v: 1, savedAt: new Date().toISOString(), case: cs, counts: cnt, priv }); setSync("cloud"); }
+      catch (e) { setSync(e && e.code === "quota_exceeded" ? "full" : "local"); }
+    }, 1500);
+  }
+  const origSet = store.set.bind(store);
+  store.set = (k, v) => { origSet(k, v); if (k === "haem5.case" || k === "haem5.counts") persist(); };
+  function setSync(m) {
+    cloud.mode = m; const s = document.getElementById("syncState"); if (!s) return;
+    s.textContent = m === "cloud" ? "Saved to your private workspace" : m === "full" ? "Workspace full: delete old data" : "Saved in this browser only";
+  }
+
+  /* ---------- AI & consent gating ---------- */
+  const active = p => !!(priv.consents[p] && priv.consents[p].given && !priv.consents[p].withdrawn);
+  function applyGates() { window.HAEM5_AI_ALLOWED = active("ai_assisted_analysis"); }
+  const origRecompute = window.recompute;
+  window.recompute = function () {
+    origRecompute();
+    const L = document.getElementById("live"); if (!L) return;
+    const msgs = [];
+    if (!active("diagnostic_reporting")) msgs.push("No active consent for diagnostic reporting — processing this case is not permitted (DPDP Act s.6). Record consent in Notice & consent.");
+    if (!active("ai_assisted_analysis")) msgs.push("AI-assisted counting is off: no AI consent recorded.");
+    msgs.forEach(m => L.insertBefore(el("div", { class: "warnbox" }, m), L.children[1] || null));
+  };
+
+  /* ---------- Notice & consent section ---------- */
+  function consentUI() {
+    const box = el("div");
+    box.append(el("fieldset", {}, el("legend", {}, "Privacy notice v2026-10 (shown before consent)"),
+      el("div", { class: "notice-txt" },
+        el("p", {}, el("b", {}, "Data we process: "), "name, age/date of birth, sex, laboratory number; phone or e-mail; clinical details, blood count, smear and marrow findings and images, flow cytometry, cytogenetic and molecular results, diagnosis and report; for a child, the parent or guardian's name; optionally a nominee."),
+        el("p", {}, el("b", {}, "Why: "), "to examine the sample and issue a WHO-HAEM5 integrated report to you and your doctor. If you agree, an AI model helps count cells; a pathologist reviews every result and signs the report."),
+        el("p", {}, el("b", {}, "Storage & retention: "), "encrypted, on servers in India; kept for the configured retention period (e.g. 5 years) or longer where law requires, then erased or de-identified; security logs kept at least one year."),
+        el("p", {}, el("b", {}, "Your rights: "), "withdraw consent at any time as easily as you gave it; get a summary of your data; correct, complete, update or erase it; nominate someone; raise a grievance. We reply within 90 days. You may complain to the Data Protection Board of India."),
+        el("p", { class: "hint" }, "Available in English; production deployments add certified translations in Eighth Schedule languages (Act s.5(3)) such as Bengali and Hindi."))));
+    const minor = (+state.age || 99) < 18;
+    const g = el("fieldset", {}, el("legend", {}, "Consent for this case"));
+    if (minor) {
+      const gi = el("input", { id: "f_guardian", type: "text", value: priv.guardian || "", placeholder: "Name and relationship" });
+      gi.oninput = () => { priv.guardian = gi.value; persist(); };
+      const gv = el("select", { id: "f_guardianVerify" }, ["", "Government photo ID seen", "DigiLocker token", "Existing verified hospital record", "Court/authority appointment order"].map(v => el("option", { value: v }, v || "—")));
+      gv.value = priv.guardianVerify || ""; gv.onchange = () => { priv.guardianVerify = gv.value; persist(); };
+      g.append(el("p", { class: "hint" }, "Patient is under 18: consent must come from a parent or lawful guardian whose identity and age are verified (Act s.9; Rule 10)."),
+        el("div", { class: "grid" }, el("div", { class: "f" }, el("label", { for: "f_guardian" }, "Parent / guardian"), gi), el("div", { class: "f" }, el("label", { for: "f_guardianVerify" }, "Verified by"), gv)));
+    }
+    for (const [k, label, req] of PURPOSES) {
+      const c = priv.consents[k] || {};
+      const on = active(k);
+      const row = el("div", { class: "consent-row" },
+        el("div", {}, el("div", { class: "nm" }, label, req ? " (needed to process the sample)" : " (optional)"),
+          el("div", { class: "hint" }, on ? `Given ${fmt(c.given)} by ${c.by}` : c.withdrawn ? `Withdrawn ${fmt(c.withdrawn)}` : "Not given")),
+        el("button", { class: "btn sm" + (on ? "" : " primary"), onclick: () => {
+          if (!on) {
+            if (minor && (!priv.guardian || !priv.guardianVerify)) { toast("Record the verified guardian first"); return; }
+            priv.consents[k] = { given: Date.now(), by: minor ? "guardian" : "self", notice: "2026-10-v1" }; audit("consent.given", { purpose: k, by: minor ? "guardian" : "self" });
+          } else { priv.consents[k] = { ...c, withdrawn: Date.now() }; audit("consent.withdrawn", { purpose: k }); }
+          applyGates(); persist(); renderForms(); show("consent"); recompute();
+        } }, on ? "Withdraw" : "Record consent"));
+      g.append(row);
+    }
+    box.append(g);
+    return box;
+  }
+
+  /* ---------- Privacy centre ---------- */
+  function privacyUI() {
+    const box = el("div");
+    // rights
+    const kind = el("select", { id: "f_rrKind" }, RIGHTS.map(([k, n]) => el("option", { value: k }, n)));
+    const det = el("input", { id: "f_rrDet", type: "text", placeholder: "Details (optional)" });
+    box.append(el("fieldset", {}, el("legend", {}, "Rights requests & grievances — 90-day clock (Rule 14)"),
+      el("div", { class: "toolbar" }, kind, det, el("button", { class: "btn primary sm", onclick: () => {
+        const r = { ref: rid("RR"), kind: kind.value, details: det.value, received: Date.now(), due: Date.now() + 90 * DAY, status: "open" };
+        priv.rights.unshift(r); audit("rights.received", { ref: r.ref, kind: r.kind }); det.value = ""; persist(); drawRights();
+      } }, "Record request")),
+      el("div", { class: "tblwrap" }, el("table", { class: "ptbl", id: "rrTbl" }))));
+    // breaches
+    const bd = el("input", { id: "f_brDesc", type: "text", placeholder: "What happened, e.g. report e-mailed to wrong recipient" });
+    box.append(el("fieldset", {}, el("legend", {}, "Breach register — Board report within 72 h (Rule 7)"),
+      el("div", { class: "toolbar" }, bd, el("button", { class: "btn primary sm", onclick: () => {
+        if (bd.value.trim().length < 5) { toast("Describe the breach first"); return; }
+        const b = { ref: rid("BR"), desc: bd.value.trim(), aware: Date.now(), mitigation: "", cause: "" };
+        priv.breaches.unshift(b); audit("breach.recorded", { ref: b.ref }); bd.value = ""; persist(); drawBreaches();
+      } }, "Record breach & start clock")),
+      el("div", { id: "brList" })));
+    // audit
+    box.append(el("fieldset", {}, el("legend", {}, "Audit trail — hash-chained, append-only"),
+      el("div", { class: "toolbar" }, el("button", { class: "btn sm", onclick: async () => { const v = await verifyChain(priv.audit); document.getElementById("auVer").textContent = v.ok ? `Chain intact: ${v.n} entries verified` : `Chain broken at entry ${v.at} (${v.why})`; } }, "Verify chain"),
+        el("button", { class: "btn sm ghost", onclick: async () => {
+          if (priv.audit.length < 2) { toast("Record a few actions first"); return; }
+          const copy = priv.audit.map(e => ({ ...e })); copy[Math.floor(copy.length / 2)].action = "tampered";
+          const v = await verifyChain(copy); document.getElementById("auVer").textContent = `Tamper test on a copy: ${v.ok ? "not detected" : "detected at entry " + v.at + " (" + v.why + ")"}`;
+        } }, "Simulate tampering"), el("span", { class: "hint", id: "auVer" })),
+      el("div", { class: "tblwrap" }, el("table", { class: "ptbl", id: "auTbl" }))));
+    // data controls
+    const eraseWrap = el("span");
+    const eraseBtn = () => { eraseWrap.innerHTML = ""; eraseWrap.append(el("button", { class: "btn sm", onclick: askErase }, "Erase all my data")); };
+    function askErase() {
+      eraseWrap.innerHTML = "";
+      eraseWrap.append(el("span", { class: "confirm" }, "Erase case, counts and privacy records?", el("button", { class: "btn sm", onclick: eraseAll }, "Erase"), el("button", { class: "btn sm ghost", onclick: eraseBtn }, "Cancel")));
+    }
+    eraseBtn();
+    box.append(el("fieldset", {}, el("legend", {}, "Your data in this workspace"),
+      el("p", { class: "hint" }, "Your workspace is private: stored under your own account path that no other viewer, including the page owner, can read. If you are signed out it stays in this browser only."),
+      el("div", { class: "toolbar" }, el("button", { class: "btn sm primary", onclick: exportData }, "Download my data (JSON)"), eraseWrap,
+        el("span", { class: "hint", id: "syncState2" }, ""))));
+    setTimeout(() => { drawRights(); drawBreaches(); drawAudit(); });
+    return box;
+  }
+  function drawRights() {
+    const T = document.getElementById("rrTbl"); if (!T) return; T.innerHTML = "";
+    T.append(el("tr", {}, ["Ref", "Request", "Received", "Due", "Status"].map(h => el("th", {}, h))));
+    if (!priv.rights.length) T.append(el("tr", {}, el("td", { colspan: 5, class: "hint" }, "No requests yet.")));
+    for (const r of priv.rights) {
+      const left = Math.ceil((r.due - Date.now()) / DAY), done = r.status === "fulfilled" || r.status === "rejected";
+      const st = el("select", { "aria-label": "Status " + r.ref }, ["open", "in_progress", "fulfilled", "rejected"].map(s => el("option", { value: s }, s.replace("_", " "))));
+      st.value = r.status; st.onchange = () => { r.status = st.value; if (done !== (st.value === "fulfilled" || st.value === "rejected")) r.resolved = Date.now(); audit("rights.updated", { ref: r.ref, status: r.status }); persist(); drawRights(); };
+      T.append(el("tr", {}, el("td", { class: "mono" }, r.ref), el("td", {}, RIGHTS.find(x => x[0] === r.kind)[1].split(":")[0].replace(/ \(.*/, ""), r.details ? el("div", { class: "hint" }, r.details) : null),
+        el("td", { class: "mono" }, fmt(r.received)), el("td", {}, done ? el("span", { class: "pill met" }, "closed") : el("span", { class: "pill " + (left < 0 ? "prob" : left <= 7 ? "prob" : "cons") }, left < 0 ? "overdue" : left + " days")), el("td", {}, st)));
+    }
+  }
+  function drawBreaches() {
+    const B = document.getElementById("brList"); if (!B) return; B.innerHTML = "";
+    if (!priv.breaches.length) B.append(el("p", { class: "hint" }, "No breaches recorded."));
+    for (const b of priv.breaches) {
+      const due = b.aware + 72 * 36e5, hrs = Math.round((due - Date.now()) / 36e5);
+      const mi = el("input", { type: "text", value: b.mitigation, placeholder: "Mitigation measures", "aria-label": "Mitigation " + b.ref }); mi.oninput = () => { b.mitigation = mi.value; persist(); };
+      const ca = el("input", { type: "text", value: b.cause, placeholder: "Findings on cause", "aria-label": "Cause " + b.ref }); ca.oninput = () => { b.cause = ca.value; persist(); };
+      const mark = (f, label, need) => el("button", { class: "btn sm", disabled: b[f] ? true : null, onclick: () => {
+        if (need && !(b.mitigation && b.cause)) { toast("The detailed report needs mitigation and cause findings"); return; }
+        b[f] = Date.now(); audit("breach." + f, { ref: b.ref }); persist(); drawBreaches(); } }, b[f] ? label + " ✓" : label);
+      const out = el("pre", { class: "notice-draft", hidden: true });
+      B.append(el("div", { class: "breach" },
+        el("div", { class: "row-sb" }, el("b", { class: "mono" }, b.ref), b.boardDetailed ? el("span", { class: "pill met" }, "Board report sent") : el("span", { class: "pill " + (hrs < 0 ? "prob" : "cons") }, hrs < 0 ? "Board deadline passed" : `${hrs} h to Board deadline`)),
+        el("div", {}, b.desc), el("div", { class: "hint" }, `Aware ${fmt(b.aware)} · detailed report due ${fmt(due)}`),
+        el("div", { class: "grid" }, mi, ca),
+        el("div", { class: "toolbar" }, mark("boardInitial", "Initial Board notice"), mark("boardDetailed", "Detailed Board report", true), mark("peopleNotified", "People notified"),
+          el("button", { class: "btn sm ghost", onclick: () => { out.hidden = !out.hidden; out.textContent = `Notice of a personal data breach\n\nWhat happened: ${b.desc} (we became aware on ${fmt(b.aware)}).\nPossible consequences: under assessment.\nWhat we have done: ${b.mitigation || "containment in progress"}.\nWhat you can do: be cautious of unexpected messages mentioning your laboratory tests.\nContact: Data Protection Officer, dpo@example.org.`; } }, "Draft notice to people")), out));
+    }
+  }
+  function drawAudit() {
+    const T = document.getElementById("auTbl"); if (!T) return; T.innerHTML = "";
+    T.append(el("tr", {}, ["#", "Time", "Action", "Detail", "Hash"].map(h => el("th", {}, h))));
+    priv.audit.slice().reverse().slice(0, 60).forEach((e, i) => T.append(el("tr", {}, el("td", { class: "mono" }, priv.audit.length - i), el("td", { class: "mono" }, fmt(e.ts)), el("td", {}, e.action),
+      el("td", { class: "mono" }, e.detail ? JSON.stringify(e.detail) : ""), el("td", { class: "mono" }, e.hash.slice(0, 12)))));
+    if (!priv.audit.length) T.append(el("tr", {}, el("td", { colspan: 5, class: "hint" }, "Actions you take are logged here.")));
+  }
+  async function exportData() {
+    audit("rights.access_export", null); await auditQ;
+    const blob = JSON.stringify({ exportedAt: new Date().toISOString(), note: "Synthetic showcase data", case: state, counts: cnt, privacy: priv }, null, 2);
+    const d = await use("downloads");
+    if (d) { try { await d.save({ filename: "haem5-my-data.json", data: blob }); return; } catch (e) { if (!e || e.code !== "unavailable") return; } }
+    const pre = el("pre", { class: "notice-draft" }, blob); document.getElementById("p_privacy").append(pre); toast("Download not available here — data shown below");
+  }
+  async function eraseAll() {
+    priv = { consents: {}, consentBy: "self", guardian: "", guardianVerify: "", rights: [], breaches: [], audit: [] };
+    cnt.PB = {}; cnt.BM = {}; origSet("haem5.counts", cnt); store.set("haem5.priv", priv);
+    loadCase(blank(), false); origSet("haem5.case", state);
+    if (cloud.ref) { try { await cloud.ref.delete(); } catch {} }
+    applyGates(); audit("data.erased_by_user", null); renderForms(); show("privacy"); toast("Your data was erased");
+  }
+
+  /* ---------- Compliance overview ---------- */
+  const MATRIX = [
+    ["Notice before consent: itemised data, purposes, withdrawal, rights, Board complaint", "s.5; Rule 3", "Versioned stand-alone notice; consent refused on outdated version"],
+    ["Free, specific, informed consent; withdrawal as easy as giving", "s.6", "Per-purpose opt-in; one-click withdrawal stops processing / AI"],
+    ["Children: verifiable parent/guardian consent", "s.9; Rule 10", "Under-18 needs guardian + recorded verification method"],
+    ["Reasonable security safeguards", "s.8(5); Rule 6", "AES-256-GCM field encryption, masking, RBAC, mandatory 2FA, HTTPS/HSTS, CSP"],
+    ["Logs to detect misuse, kept ≥ 1 year", "Rule 6; Rule 8", "Append-only hash-chained audit log with verification"],
+    ["Breach: people without delay; Board detailed report in 72 h", "s.8(6); Rule 7", "Breach register with live 72-h clock and notice drafts"],
+    ["Erase when purpose served / consent withdrawn", "s.8(7); Rule 8", "Retention policy, 48-h intimation, crypto-shredding"],
+    ["Published DPO / contact; grievance redressal ≤ 90 days", "s.8(9)–(10); Rules 9, 14", "Contact on notice; 90-day rights & grievance register"],
+    ["Access, correction, erasure, nomination", "ss.11–14", "Access summary export; audited correction; nominee"],
+    ["Data in India; no third-party transfers", "s.16; Rule 15", "Indian-region deployment; AI runs in the browser"]];
+  function complianceUI() {
+    const box = el("div");
+    const node = (t, sub) => el("div", { class: "an" }, el("b", {}, t), el("span", {}, sub));
+    box.append(el("fieldset", {}, el("legend", {}, "Architecture & data flow"),
+      el("div", { class: "arch" },
+        el("div", { class: "acol" }, el("div", { class: "ah" }, "People"), node("Patient / guardian", "reads notice, gives per-purpose consent, files rights requests on the public form"), node("Pathologist & staff", "sign in with password + authenticator code; role-limited")),
+        el("div", { class: "aarrow", "aria-hidden": "true" }, "→"),
+        el("div", { class: "acol" }, el("div", { class: "ah" }, "Browser"), node("WHO-HAEM5 workbench", "counter, rule engine, synoptic report"), node("On-device AI", "ONNX model in WebAssembly; images never leave the device")),
+        el("div", { class: "aarrow", "aria-hidden": "true" }, "→"),
+        el("div", { class: "acol" }, el("div", { class: "ah" }, "Server (India region)"), node("API", "consent gates, RBAC, 2FA, 30-min sessions"), node("PostgreSQL", "AES-256-GCM encrypted identifiers & reports"), node("Audit log", "append-only, hash-chained")),
+        el("div", { class: "aarrow", "aria-hidden": "true" }, "→"),
+        el("div", { class: "acol" }, el("div", { class: "ah" }, "Governance"), node("DPO console", "rights 90 d · breaches 72 h · erasure 48 h notice"), node("Data Protection Board", "breach intimation & complaints")))));
+    const t = el("table", { class: "ptbl" }, el("tr", {}, ["Requirement", "DPDP", "Control"].map(h => el("th", {}, h))), MATRIX.map(r => el("tr", {}, r.map((c, i) => el("td", { class: i === 1 ? "mono" : "" }, c)))));
+    box.append(el("fieldset", {}, el("legend", {}, "DPDP Act 2023 & Rules 2025 → controls"), el("div", { class: "tblwrap" }, t),
+      el("p", { class: "hint" }, "Substantive obligations commence 18 months after the Rules' notification (May 2027). GDPR crosswalk: Art. 6/9 lawful basis, 13 notice, 15–17 rights, 22 human review of AI, 25 privacy by design, 32 security, 33–34 breach. Prototype for research and teaching; not a medical device. Clinical use needs CDSCO classification and ISO 15189 validation.")));
+    return box;
+  }
+
+  /* ---------- styles & wiring ---------- */
+  document.head.append(el("style", {}, `
+    .sc-banner{background:var(--eosin-soft);border-bottom:1px solid var(--line);font-size:13px}
+    .sc-banner .wrap{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;padding-block:6px;max-width:1500px;margin:0 auto}
+    .consent-row{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+    .consent-row:last-child{border-bottom:0} .consent-row .nm{font-weight:500}
+    .notice-txt p{margin:0 0 8px;max-width:75ch}
+    .tblwrap{overflow-x:auto} .ptbl{border-collapse:collapse;width:100%;font-size:13.5px}
+    .ptbl th,.ptbl td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+    .ptbl th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+    .ptbl .mono,.mono{font-family:var(--f-mono);font-size:12.5px}
+    .toolbar input[type=text],.toolbar select,.breach input{border:1px solid var(--line);background:var(--sunken);border-radius:6px;padding:6px 8px;min-width:0}
+    .toolbar input[type=text]{flex:1 1 220px}
+    .breach{border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:10px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+    .row-sb{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+    .notice-draft{white-space:pre-wrap;font:12.5px/1.5 var(--f-mono);background:var(--sunken);border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;max-height:360px}
+    .arch{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:8px;align-items:stretch}
+    .acol{display:flex;flex-direction:column;gap:8px;min-width:0} .ah{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+    .an{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--sunken);display:flex;flex-direction:column;gap:2px;font-size:13px}
+    .an span{color:var(--muted);font-size:12.5px} .aarrow{align-self:center;color:var(--accent);font-size:20px}
+    @media (max-width:900px){.arch{grid-template-columns:1fr}.aarrow{transform:rotate(90deg);justify-self:center}}`));
+  const banner = el("div", { class: "sc-banner" }, el("div", { class: "wrap" },
+    el("span", {}, el("b", {}, "Showcase · synthetic data only. "), "Do not enter real patient information."),
+    el("span", { class: "hint", id: "syncState" }, "Saved in this browser only")));
+  document.querySelector("header.top").after(banner);
+
+  const caseIdx = SECTIONS.findIndex(s => s.id === "case");
+  SECTIONS.splice(caseIdx + 1, 0, { id: "consent", title: "Notice & consent", lede: "Show the notice, then record consent per purpose. AI counting unlocks only with AI consent; withdrawing diagnostic consent stops processing.", render: consentUI });
+  SECTIONS.push({ id: "privacy", title: "Privacy centre", lede: "The Data Protection Officer's view: rights requests with 90-day clocks, the breach register with its 72-hour Board deadline, and the tamper-evident audit trail.", render: privacyUI });
+  SECTIONS.push({ id: "compliance", title: "DPDP compliance", lede: "How the platform maps India's Digital Personal Data Protection Act 2023 and Rules 2025 to concrete controls.", render: complianceUI });
+
+  // seed the example case with consent so the demo opens in a working state
+  if (!Object.keys(priv.consents).length && isExample) {
+    priv.consents = { diagnostic_reporting: { given: Date.now(), by: "self", notice: "2026-10-v1" } };
+    audit("consent.given", { purpose: "diagnostic_reporting", by: "self", example: true });
+  }
+  const origUse = window.show;
+  window.show = function (id) { origUse(id); if (id === "privacy") { drawRights(); drawBreaches(); drawAudit(); const s2 = document.getElementById("syncState2"); if (s2) s2.textContent = document.getElementById("syncState").textContent; } };
+  const origLoad = window.loadCase;
+  applyGates(); renderForms(); recompute();
+
+  /* ---------- private per-viewer backend ---------- */
+  (async () => {
+    try {
+      const [db, user] = await Promise.all([use("db"), use("user")]);
+      const uid = user ? await user.id() : null;
+      if (!db || !uid) return;
+      cloud.db = db; cloud.ref = db.doc(`data/users/${uid}/workspace`);
+      const snap = await cloud.ref.get();
+      if (snap.exists) {
+        const d = snap.data();
+        if (d.priv) priv = JSON.parse(JSON.stringify(d.priv));
+        if (d.counts) { cnt.PB = { ...(d.counts.PB || {}) }; cnt.BM = { ...(d.counts.BM || {}) }; }
+        if (d.case) origLoad(d.case, false);
+        applyGates(); renderForms(); recompute();
+      }
+      setSync("cloud");
+    } catch { setSync("local"); }
+  })();
+})();
+
+</script>
+

@@ -1,0 +1,29 @@
+# Production-style stack: app + PostgreSQL + Caddy (automatic HTTPS). Host it in an Indian region.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: haem5
+      POSTGRES_USER: haem5
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+    volumes: [dbdata:/var/lib/postgresql/data]
+    networks: [internal]
+  app:
+    build: { context: .., dockerfile: deploy/Dockerfile }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HAEM5_DB_URL: postgresql+psycopg://haem5:${POSTGRES_PASSWORD}@db:5432/haem5
+    depends_on: [db]
+    networks: [internal]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    env_file: .env
+    volumes: [./Caddyfile:/etc/caddy/Caddyfile:ro, caddydata:/data]
+    depends_on: [app]
+    networks: [internal]
+volumes: { dbdata: {}, caddydata: {} }
+networks: { internal: {} }

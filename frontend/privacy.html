@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAEM5 Privacy Notice</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="top"><div class="wrap"><div class="brand"><b>HAEM5 Reporter</b><span>Privacy notice and your data rights</span></div></div></header>
+<main class="wrap">
+  <div id="notice" class="card notice">Loading the privacy notice…</div>
+  <form id="rq" class="card">
+    <h2>Make a request about your data</h2>
+    <p class="lede">You do not need an account. We will check your identity before acting, and reply within 90 days.</p>
+    <div class="grid">
+      <div class="f"><label for="k">What would you like?</label><select id="k">
+        <option value="access">A summary of my data and who it was shared with</option>
+        <option value="correction">Correct my data</option><option value="completion">Complete my data</option><option value="updating">Update my data</option>
+        <option value="erasure">Erase my data</option><option value="withdraw_consent">Withdraw a consent</option>
+        <option value="nomination">Nominate someone to act for me</option><option value="grievance">Raise a grievance</option></select></div>
+      <div class="f"><label for="id">Laboratory number or full name</label><input id="id" required minlength="2"></div>
+      <div class="f"><label for="ct">Phone or email to reply to</label><input id="ct" required minlength="5"></div>
+      <div class="f wide"><label for="dt">Details</label><textarea id="dt" maxlength="4000"></textarea></div>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn primary">Send request</button></div>
+    <div id="msg" style="margin-top:10px"></div>
+  </form>
+</main>
+<script>
+"use strict";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+fetch("/api/public/notice").then(r => r.json()).then(n => {
+  document.getElementById("notice").innerHTML = `<h1>${esc(n.title)}</h1><p class="hint">Version ${esc(n.version)} · ${esc(n.data_fiduciary)}</p>
+    <h3>Personal data we process</h3><ul>${n.personal_data.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+    <h3>Purposes (each needs your separate consent)</h3><ul>${n.purposes.map(p => `<li>${esc(p.description)}${p.required ? " — needed to process your sample" : " — optional"}</li>`).join("")}</ul>
+    <h3>What this enables</h3><p>${esc(n.services_enabled)}</p><p>${esc(n.ai_statement)}</p>
+    <h3>Storage and retention</h3><p>${esc(n.storage)} ${esc(n.retention)}</p>
+    <h3>Withdrawing consent</h3><p>${esc(n.withdrawal)}</p><h3>Your rights</h3><p>${esc(n.rights)}</p>
+    <h3>Contact us</h3><p>${esc(n.contact.name)} · <span class="mono">${esc(n.contact.email)}</span> · <span class="mono">${esc(n.contact.phone)}</span></p><p>${esc(n.board)}</p>`;
+});
+document.getElementById("rq").onsubmit = async e => {
+  e.preventDefault();
+  const m = document.getElementById("msg");
+  try {
+    const r = await fetch("/api/public/rights-request", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: k.value, lab_no_or_name: id.value, contact: ct.value, details: dt.value }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(Array.isArray(d.detail) ? d.detail.map(x => x.msg).join("; ") : d.detail);
+    m.innerHTML = `<div class="okmsg">${esc(d.message)} Keep your reference: <span class="mono">${esc(d.ref)}</span></div>`;
+    e.target.reset();
+  } catch (err) { m.innerHTML = `<div class="err">${esc(err.message)}</div>`; }
+};
+</script>
+</body>
+</html>
