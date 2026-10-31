@@ -1,0 +1,70 @@
+{
+  "format": "haem5-cell-v1",
+  "version": "v2",
+  "classes": [
+    "blast",
+    "promyelocyte",
+    "myelocyte",
+    "metamyelocyte",
+    "band_neutrophil",
+    "segmented_neutrophil",
+    "eosinophil",
+    "basophil",
+    "monocyte",
+    "lymphocyte",
+    "atypical_lymphocyte",
+    "erythroblast",
+    "platelet",
+    "smudge",
+    "plasma_cell",
+    "hairy_cell",
+    "immature_lymphocyte",
+    "proerythroblast",
+    "artefact"
+  ],
+  "present_classes": [
+    "blast",
+    "promyelocyte",
+    "myelocyte",
+    "metamyelocyte",
+    "band_neutrophil",
+    "segmented_neutrophil",
+    "eosinophil",
+    "basophil",
+    "monocyte",
+    "lymphocyte",
+    "atypical_lymphocyte",
+    "erythroblast",
+    "platelet",
+    "smudge",
+    "plasma_cell",
+    "hairy_cell",
+    "immature_lymphocyte",
+    "proerythroblast",
+    "artefact"
+  ],
+  "img_size": 256,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "input_name": "input",
+  "layout": "NCHW",
+  "resize": "direct",
+  "model": "efficientnet_b0",
+  "trained_on": [],
+  "n_train": 0,
+  "thresholds": {
+    "blast": 0.2,
+    "accept": 0.71
+  },
+  "accept": {},
+  "test": {},
+  "external": {}
+}
