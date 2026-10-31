@@ -39,6 +39,17 @@ header.top .wrap{display:flex;flex-wrap:wrap;gap:var(--s3);align-items:center;pa
 .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn.sm{padding:4px 9px;font-size:13px}
 .layout{display:grid;grid-template-columns:200px minmax(0,1fr) 380px;gap:var(--s5);max-width:1500px;margin:0 auto;padding-block:var(--s5)}
+#printView{display:none}
+@media print{body.printing>*:not(#printView){display:none!important}body.printing #printView{display:block;font:11pt/1.45 Georgia,serif;color:#000;background:#fff;padding:0}
+#printView .lh{border-bottom:2px solid #000;margin-bottom:10px;padding-bottom:6px}#printView .lab{font-size:16pt;font-weight:700}#printView .sub{font-size:10pt}
+#printView h3{font-size:11pt;margin:12px 0 4px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #999}#printView p{margin:2px 0}
+#printView .crit{font-weight:700;border:1px solid #000;padding:3px 6px}#printView .fl{font-weight:700}#printView .foot{margin-top:18px;border-top:1px solid #999;padding-top:6px;font-size:9pt}
+@page{margin:16mm}}
+.importbox textarea{width:100%;font:13px var(--f-mono);margin:6px 0}
+.flagb{margin-left:6px;font:11px var(--f-mono);color:var(--muted);white-space:nowrap}.flagb.ab{color:var(--warn);font-weight:700}.flagb.crit{color:var(--eosin);font-weight:700}.rtable{border-collapse:collapse;margin:8px 0;font-size:13px}.rtable td,.rtable th{padding:3px 6px;border-bottom:1px solid var(--line);text-align:left}
+.pbar{position:relative;display:inline-block;width:150px;height:18px;margin:2px 8px 2px 0;border:1px solid var(--line);border-radius:9px;overflow:hidden;vertical-align:middle;background:var(--sunken)}.pbar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent-soft)}.pbar span{position:relative;z-index:1;font-size:11px;padding:0 8px;line-height:18px}
+.rbcthumbs{display:flex;flex-wrap:wrap;gap:2px;margin:2px 0 8px}
+.rbcalerts{margin:0 0 10px}.rbcalerts .fam{margin-bottom:4px}.warnbox.urgent{border:1px solid var(--eosin);background:var(--eosin-soft);font-weight:600}
 nav.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);align-self:start;display:flex;flex-direction:column;gap:2px}
 nav.rail button{text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--muted);display:flex;gap:8px;align-items:baseline}
 nav.rail button .n{font:12px var(--f-mono);color:var(--muted);min-width:1.6em}
@@ -181,12 +192,12 @@ const SECTIONS = [
      ["hxCML","Known CML","chk"],["hxCytotoxic","Prior cytotoxic therapy / radiotherapy","chk"],["germline","Germline predisposition (gene)","text",null,"e.g. DDX41, RUNX1, GATA2"],["downSyndrome","Down syndrome","chk"],
      ["splenomegaly","Palpable splenomegaly","chk"],["lymphadenopathy","Lymphadenopathy","chk"],["extramedullaryTumour","Extramedullary myeloid tumour","chk"]]}]},
  { id: "blood", title: "Blood count & film", lede: "CBC and peripheral blood film. Absolute counts can be filled from the differential counter.", sets: [
-   { legend: "Full blood count", fields: [
-     ["hb","Haemoglobin","num","g/dL"],["hct","Haematocrit","num","%"],["wbc","WBC","num","×10⁹/L"],["anc","Neutrophils (ANC)","num","×10⁹/L"],
-     ["amc","Monocytes (absolute)","num","×10⁹/L"],["monoPct","Monocytes","num","% WBC"],["aec","Eosinophils (absolute)","num","×10⁹/L"],["basoPct","Basophils","num","% WBC"],
-     ["plt","Platelets","num","×10⁹/L"],["pbBlast","PB blasts + equivalents","num","%"],["pbImmMyeloidPct","PB immature myeloid (pro-/myelo-/metamyelocytes)","num","%"]]},
+   { legend: "Import from analyser", custom: "import" },
+   ...HAEM5CBC.formSets(),
+   { legend: "Reference ranges", custom: "ranges" },
+   ...HAEM5RBC.formSets(),
    { legend: "Film & clinical findings", fields: [
-     ["rbcMorph","Red cell morphology","area",null,"e.g. normocytic normochromic; anisopoikilocytosis with teardrop cells; schistocytes 2%; rouleaux"],
+     ["rbcMorph","Other red cell comments","area",null,"Free text added to the red cell line, e.g. occasional fragments near the tail"],
      ["pltMorph","Platelet morphology","text",null,"e.g. adequate; giant platelets; clumps seen"],
      ["pbFilm","White cell & other film findings","area"],["leukoerythro","Leukoerythroblastic picture","chk"],["ldhHigh","LDH above ULN","chk"],["epoLow","Subnormal serum EPO","chk"],
      ["eosPersist4wk","Hypereosinophilia sustained ≥4 weeks","chk"],["noReactive","Reactive cause excluded","chk"],["lymphoblastsIncreased","Increased lymphoblasts (in CML)","chk"]]}]},
@@ -233,7 +244,7 @@ let isExample = false;
 const blank = () => ({ fusions: [], cyto: [], mrGenes: [], flowLineage: "unknown" });
 
 const EXAMPLES = {
-  mds: { name: "MDS with increased blasts", data: { labNo:"BM/26/1043", patient:"Example A", age:67, sex:"M", clinician:"Dr R. Sen, Haematology", dateRec:"28/10/2026", specimen:"PB film; BM aspirate + trephine (R PSIS)", clinical:"Progressive fatigue, transfusion-dependent anaemia for 4 months. No prior chemotherapy.",
+  mds: { name: "MDS with increased blasts", data: { _previous: { lab_no: "PBS/26/0912", date: "2026-08-02", cbc: { hb: 9.1, wbc: 3.4, anc: 1.4, plt: 88, mcv: 101 } }, labNo:"BM/26/1043", patient:"Example A", age:67, sex:"M", clinician:"Dr R. Sen, Haematology", dateRec:"28/10/2026", specimen:"PB film; BM aspirate + trephine (R PSIS)", clinical:"Progressive fatigue, transfusion-dependent anaemia for 4 months. No prior chemotherapy.",
     hb:7.8, wbc:2.9, anc:0.9, amc:0.31, monoPct:7, plt:54, pbBlast:2, bmBlast:12, bmCellularity:70, fibrosis:"1", dysGran:true, dysMega:true, ringSid:4, flowLineage:"myeloid", mpoPos:"yes",
     cyto:["mono7"], mrGenes:["ASXL1","SRSF2"], tp53Count:0, karyotype:"46,XY,del(7)(q22q36)[14]/46,XY[6]", ngsText:"ASXL1 c.1934dupG (VAF 31%); SRSF2 P95H (VAF 38%). TP53 wild-type.",
     pbFilm:"Pancytopenia. Hypogranular neutrophils with pseudo-Pelger forms. Occasional blasts.", bmAspirate:"Cellular particles. Dysgranulopoiesis (~30% of neutrophils); micromegakaryocytes and separated nuclear lobes. Blasts 12%; no Auer rods.",
@@ -278,14 +289,70 @@ let current = "case";
 function renderRail() { const r = $("#rail"); r.innerHTML = "";
   SECTIONS.forEach((s, i) => r.append(el("button", { class: s.id === current ? "on" : "", onclick: () => show(s.id) }, el("span", { class: "n" }, String(i + 1).padStart(2, "0")), s.title))); }
 function show(id) { current = id; document.querySelectorAll("section.pane").forEach(p => p.classList.toggle("on", p.id === "p_" + id)); renderRail(); if (id === "report") renderReport(); window.scrollTo({ top: 0 }); }
-function renderForms() { setTimeout(() => { drawFieldStats(); drawGallery(); });
+/* ---------------- CBC reference ranges ---------------- */
+function labRanges() { if (window.HAEM5_LAB_RANGES !== undefined) return window.HAEM5_LAB_RANGES;   // laboratory-wide (server)
+  try { return JSON.parse(localStorage.getItem("haem5.labRanges") || "null"); } catch { return null; } }
+async function saveLabRanges(r) {
+  if (window.HAEM5_SAVE_RANGES) { await window.HAEM5_SAVE_RANGES(r); window.HAEM5_LAB_RANGES = r; return "for the whole laboratory"; }
+  if (r) localStorage.setItem("haem5.labRanges", JSON.stringify(r)); else localStorage.removeItem("haem5.labRanges"); return "on this device";
+}
+function cbcOpts() { const r = labRanges(), o = r ? { lab: r, critical: r.critical } : {}; const pv = window.HAEM5_PREVIOUS || state._previous; if (pv && pv.cbc) o.previous = pv; return o; }
+function drawCbcBadges(ce) {
+  document.querySelectorAll(".flagb").forEach(x => x.remove());
+  for (const r of ce.rows) {
+    const inp = document.getElementById("f_" + r.id); if (!inp || !inp.parentElement) continue;
+    const lab = inp.parentElement.querySelector("label"); if (!lab) continue;
+    const t = r.critical ? `CRITICAL ${r.dir}` : r.dir;
+    lab.append(el("span", { class: "flagb" + (r.critical ? " crit" : r.dir || r.deltaFail ? " ab" : ""), title: r.prev != null ? `Previous ${r.prev}` : "" }, (t ? t + " · " : "") + (r.lo != null ? `${r.lo}–${r.hi}` : "no range") + (r.prev != null ? ` · prev ${r.prev}${r.deltaFail ? " Δ!" : ""}` : "")));
+  }
+  const b = document.getElementById("rangeBand"); if (b) b.textContent = ce.band;
+}
+function importUI() {
+  const ta = el("textarea", { id: "anPaste", rows: 4, placeholder: "Paste the analyser printout or LIS text here, e.g.\nWBC 2.90 10^3/uL\nHGB 78 g/L\nPLT 54 10^3/uL\nNEUT# 0.90 …" });
+  const msg = el("span", { class: "hint", id: "anMsg" });
+  const fs = el("details", { class: "importbox" }, el("summary", {}, "Import from analyser — paste the printout instead of typing"), ta,
+    el("div", { class: "toolbar" }, el("button", { class: "btn sm primary", onclick: () => {
+      const v = HAEM5CBC.parseAnalyser(ta.value), keys = Object.keys(v);
+      if (!keys.length) { msg.textContent = "No recognised values. Lines should start with WBC, HGB, PLT, MCV, NEUT# …"; return; }
+      Object.assign(state, v); renderForms(); changed(); toast(`${keys.length} values imported — check them against the printout`);
+    } }, "Fill blood count"), msg));
+  return el("fieldset", {}, el("legend", {}, "Import from analyser"), fs);
+}
+function rangesUI() {
+  const fs = el("fieldset", {}, el("legend", {}, "Reference ranges"));
+  const lab = labRanges();
+  fs.append(el("p", { class: "hint" }, "In use: ", el("b", { id: "rangeBand" }, HAEM5CBC.ranges(state, lab).band), ". Defaults: adults — Dacie & Lewis 12th ed.; children — NBT/Dacie & Lewis; critical limits — Hb <7 or >20 g/dL, platelets <20 or >1000, neutrophils <0.5, WBC <1 or >50 ×10⁹/L. Replace them with your laboratory's verified ranges (ISO 15189 / NABL). Children's ranges stay at the defaults." + (window.HAEM5_SAVE_RANGES ? " Saved ranges apply to everyone in the laboratory." : " In this demo, saved ranges stay on this device.")));
+  const box = el("div", { id: "rangeEdit", hidden: true });
+  const ids = HAEM5CBC.PARAMS.map(p => p[0]);
+  const cur = sx => ({ ...HAEM5CBC.ADULT.both, ...HAEM5CBC.ADULT[sx], ...((lab && lab[sx]) || {}) });
+  const tbl = el("table", { class: "rtable" }, el("tr", {}, el("th", {}, "Parameter"), el("th", {}, "Men low"), el("th", {}, "Men high"), el("th", {}, "Women low"), el("th", {}, "Women high")));
+  const inp = (id, v) => el("input", { id, type: "number", step: "any", value: v ?? "", style: "width:72px" });
+  for (const id of ids) { const m = cur("M")[id] || [], f = cur("F")[id] || [];
+    tbl.append(el("tr", {}, el("td", {}, `${HAEM5CBC.LABEL[id]} (${HAEM5CBC.UNIT[id]})`), el("td", {}, inp(`rM_${id}_0`, m[0])), el("td", {}, inp(`rM_${id}_1`, m[1])), el("td", {}, inp(`rF_${id}_0`, f[0])), el("td", {}, inp(`rF_${id}_1`, f[1])))); }
+  const cr = { ...HAEM5CBC.CRITICAL, ...((lab && lab.critical) || {}) };
+  const ctbl = el("table", { class: "rtable" }, el("tr", {}, el("th", {}, "Critical limit"), el("th", {}, "Below"), el("th", {}, "Above")));
+  for (const id of Object.keys(HAEM5CBC.CRITICAL)) ctbl.append(el("tr", {}, el("td", {}, `${HAEM5CBC.LABEL[id]} (${HAEM5CBC.UNIT[id]})`), el("td", {}, inp(`rC_${id}_0`, cr[id][0])), el("td", {}, inp(`rC_${id}_1`, cr[id][1]))));
+  const save = () => {
+    const out = { M: {}, F: {}, critical: {} }, val = id => { const v = document.getElementById(id).value; return v === "" ? null : +v; };
+    for (const id of ids) for (const sx of ["M", "F"]) { const lo = val(`r${sx}_${id}_0`), hi = val(`r${sx}_${id}_1`); if (lo != null && hi != null) out[sx][id] = [lo, hi]; }
+    for (const id of Object.keys(HAEM5CBC.CRITICAL)) out.critical[id] = [val(`rC_${id}_0`), val(`rC_${id}_1`)];
+    saveLabRanges(out).then(w => { toast("Laboratory ranges saved " + w); recompute(); renderReport(); }).catch(e => toast("Could not save ranges: " + (e.message || e)));
+  };
+  box.append(tbl, el("h4", {}, "Critical (panic) limits"), ctbl, el("div", { class: "toolbar" },
+    el("button", { class: "btn primary sm", onclick: save }, "Save laboratory ranges"),
+    el("button", { class: "btn ghost sm", onclick: () => { saveLabRanges(null).then(() => { renderForms(); recompute(); toast("Default ranges restored"); }).catch(e => toast(e.message || String(e))); } }, "Restore defaults")));
+  fs.append(el("button", { class: "btn sm", onclick: () => { box.hidden = !box.hidden; } }, "Edit laboratory ranges"), box);
+  return fs;
+}
+function renderForms() { setTimeout(() => { drawFieldStats(); drawRbcStats(); drawGallery(); });
   const m = $("#main"); m.innerHTML = "";
   for (const s of SECTIONS) {
     const p = el("section", { class: "pane" + (s.id === current ? " on" : ""), id: "p_" + s.id }, el("h2", {}, s.title), el("p", { class: "lede" }, s.lede));
     if (s.custom === "counter") p.append(counterUI());
     else if (s.custom === "report") p.append(reportUI());
     else if (typeof s.render === "function") p.append(s.render());
-    else for (const set of s.sets) { const fs = el("fieldset", {}, el("legend", {}, set.legend)); const g = el("div", { class: "grid" });
+    else for (const set of s.sets) { if (set.custom === "ranges") { p.append(rangesUI()); continue; } if (set.custom === "import") { p.append(importUI()); continue; }
+      const fs = el("fieldset", {}, el("legend", {}, set.legend)); const g = el("div", { class: "grid" });
       set.fields.forEach(f => g.append(fieldEl(f))); fs.append(g); p.append(fs); }
     m.append(p);
   }
@@ -305,6 +372,18 @@ function recompute() {
   const L = $("#live"); L.innerHTML = "";
   L.append(el("div", { class: "panelhead" }, el("h3", {}, "WHO-HAEM5 suggestion"), el("span", {}, `${lastResult.candidates.length} candidate${lastResult.candidates.length === 1 ? "" : "s"}`)));
   lastResult.warnings.forEach(w => L.append(el("div", { class: "warnbox" }, w)));
+  const ce = HAEM5CBC.evaluate(state, cbcOpts());
+  if (ce.rows.length) {
+    const box = el("div", { class: "rbcalerts" }, el("div", { class: "fam" }, `Blood count — ${ce.band.split(" — ")[0]}`));
+    if (ce.critical.length) box.append(el("div", { class: "warnbox urgent" }, `CRITICAL: ${ce.critical.join("; ")}. Inform the clinician now and record it under Analyser flags & review.`));
+    if (ce.interpretation.length) box.append(el("div", { class: "warnbox" }, ce.interpretation.join("; ")));
+    if (ce.previous) { const fails = ce.rows.filter(r => r.deltaFail); box.append(el("div", { class: "hint" }, `Previous CBC ${ce.previous.lab_no || ""} (${ce.previous.date ? new Date(ce.previous.date).toLocaleDateString("en-GB") : "date unknown"})` + (fails.length ? ` — delta check failed: ${fails.map(r => `${r.label} ${r.prev} → ${r.v}`).join("; ")}` : " — no delta failures"))); }
+    if (ce.review.length) box.append(el("div", { class: "warnbox" }, el("b", {}, "Film review needed (ISLH): "), ce.review.map(r => `rule ${r.rule} — ${r.text}`).join("; ")));
+    L.append(box);
+  }
+  drawCbcBadges(ce);
+  const ra = HAEM5RBC.alerts(state);
+  if (ra.length) L.append(el("div", { class: "rbcalerts" }, el("div", { class: "fam" }, "Red cell findings"), ra.map(a => el("div", { class: "warnbox" + (a.level === "urgent" ? " urgent" : "") }, a.text))));
   lastResult.candidates.forEach((cd, i) => {
     const pill = { "criteria met": "met", probable: "prob", consider: "cons" }[cd.status];
     const box = el("div", { class: "cand" + (i === 0 ? " top" : "") },
@@ -343,9 +422,10 @@ function counterUI() {
     el("span", { id: "resetWrap" }, el("button", { class: "btn sm ghost", onclick: askReset }, "Reset")));
   box.append(el("fieldset", {}, el("legend", {}, "Manual count"), top, el("div", { class: "keys", id: "keys" }),
     el("div", { class: "summary-row", id: "cntSummary" }),
-    el("div", { class: "toolbar" }, el("button", { class: "btn primary", onclick: () => applyCounts() }, "Apply to case"), el("span", { class: "hint" }, "Writes blasts %, monocyte/eosinophil absolute counts (from WBC), immature myeloid %, and marrow fractions."))));
+    el("div", { class: "toolbar" }, el("button", { class: "btn primary", onclick: () => applyCounts() }, "Apply to case"),
+      el("button", { class: "btn sm", onclick: copyPilotRow, title: "Copies this slide's app results in the pilot sheet's column order (App: Blast % … App: time)" }, "Copy pilot row"), el("span", { class: "hint" }, "Writes blasts %, monocyte/eosinophil absolute counts (from WBC), immature myeloid %, and marrow fractions."))));
   box.append(aiUI());
-  setTimeout(loadBuiltinModel, 300);
+  setTimeout(() => { loadBuiltinModel(); loadBuiltinRbc().then(loadBuiltinMalaria); }, 300);
   box.append(galleryUI());
   return box;
 }
@@ -399,6 +479,9 @@ document.addEventListener("keydown", e => {
 
 /* ---------------- AI-assisted classification (ONNX Runtime Web) ---------------- */
 const AI = { session: null, meta: null, items: [], mode: "field" };
+const FULLCROPS = new Map();   // gallery id → full-size crop (this session only), for "Export reviewed cells"
+const RBC = { session: null, meta: null, examples: {}, cells: [], shown: 120 };   // cells: every classified red cell this session (for review/export)   // red cell morphology model (optional)
+const MAL = { session: null, meta: null, examples: [] };    // malaria parasite screening model (optional)
 function aiUI() {
   const fs = el("fieldset", {}, el("legend", {}, "AI-assisted count"));
   const st = el("div", { class: "status" + (AI.statusErr ? " err" : ""), id: "aiStatus" }, AI.statusMsg || "No model loaded. Train one with the HAEM5 Colab notebook, then load cell_model.onnx and cell_labels.json together.");
@@ -418,8 +501,10 @@ function aiUI() {
   drop.addEventListener("dragleave", () => drop.classList.remove("over"));
   drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); const f = [...e.dataTransfer.files]; if (f.some(x => /\.(onnx|json)$/i.test(x.name))) loadModel(f); else ingest(f.filter(x => x.type.startsWith("image/"))); });
   fs.append(el("div", { class: "toolbar" }, el("button", { class: "btn", onclick: () => mIn.click() }, "Load model files"), mIn, iIn,
-    el("button", { class: "btn primary", onclick: addAIToCount }, "Add reviewed cells to count"), camIn, el("button", { class: "btn ghost sm", onclick: () => { AI.items = []; drawThumbs(); } }, "Clear images")),
-    el("div", { class: "toolbar" }, el("span", { class: "hint" }, "Images are:"), modeSeg), st, drop, el("div", { class: "summary-row", id: "fieldStats" }), el("div", { class: "thumbs", id: "thumbs" }));
+    el("button", { class: "btn primary", onclick: addAIToCount }, "Add reviewed cells to count"),
+    el("label", { class: "chk", title: "Needs a model calibrated with an accept threshold (HAEM5 v2 notebook)" }, (() => { const c = el("input", { type: "checkbox" }); c.checked = AI.confidentOn !== false; c.onchange = () => { AI.confidentOn = c.checked; drawThumbs(); drawGallery(); }; return c; })(), "Auto-accept confident cells"),
+    el("button", { class: "btn sm", onclick: async () => { const low = AI.items.filter(x => x.pred && x.pred !== "error" && !x.heat && ((x.conf !== null && x.conf < acceptThr()) || x.byThreshold)); if (!low.length) { toast("No flagged cells to explain"); return; } for (const x of low) await explain(x); } , title: "Heatmaps for low-confidence and threshold-called cells" }, "Explain flagged cells"), camIn, el("button", { class: "btn ghost sm", onclick: () => { AI.items = []; drawThumbs(); } }, "Clear images")),
+    el("div", { class: "toolbar" }, el("span", { class: "hint" }, "Images are:"), modeSeg), st, drop, el("div", { id: "countProgress" }), el("div", { class: "summary-row", id: "fieldStats" }), el("div", { class: "status", id: "rbcStatus" }, RBC.statusMsg || "Red cell model: not loaded. Load rbc_model.onnx + rbc_labels.json (from the HAEM5 RBC notebook) to grade red cell morphology from slide photos."), el("div", { id: "rbcStats" }), el("div", { class: "thumbs", id: "thumbs" }));
   return fs;
 }
 function aiStatus(msg, err) { AI.statusMsg = msg; AI.statusErr = !!err; const s = $("#aiStatus"); if (s) { s.textContent = msg; s.classList.toggle("err", !!err); } }
@@ -439,13 +524,31 @@ async function startSession(bytes, meta, source) {
   await initRuntime();
   AI.session = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
   AI.meta = meta; AI.source = source;
-  aiStatus(`Model ready (${source}): ${meta.model || "model"} · ${meta.present_classes?.length || meta.classes.length} classes${meta.test ? ` · test macro-F1 ${meta.test.macro_f1.toFixed(3)}` : ""}${meta.thresholds?.blast ? ` · blast threshold ${meta.thresholds.blast}` : ""} · 4-rotation averaging on. Add cell images.`);
+  aiStatus(`Model ready (${source}): ${meta.model || "model"} · ${meta.present_classes?.length || meta.classes.length} classes${meta.test ? ` · test macro-F1 ${meta.test.macro_f1.toFixed(3)}` : ""}${meta.thresholds?.blast ? ` · blast threshold ${meta.thresholds.blast}` : ""}${meta.thresholds?.accept ? ` · confident cells (≥${Math.round(100 * meta.thresholds.accept)}%) auto-accepted${meta.accept ? `, validation accuracy ${(100 * meta.accept.val_accuracy).toFixed(1)}% on ${(100 * meta.accept.val_coverage).toFixed(0)}% of cells` : ""}` : ""} · 4-rotation averaging on. Add cell images.`);
   if (AI.items.length) classifyAll();
 }
 async function loadModel(files) {
   if (window.HAEM5_AI_ALLOWED === false) { aiStatus("No consent recorded for AI-assisted analysis for this patient. Count manually.", true); return; }
+  const jsons = files.filter(f => /\.json$/i.test(f.name)), onnxs = files.filter(f => /\.onnx$/i.test(f.name));
+  for (const j of jsons) {   // red cell model: rbc_labels.json (format haem5-rbc-v1) + the .onnx whose name contains "rbc"
+    let m; try { m = JSON.parse(await j.text()); } catch { continue; }
+    if (m.format === "haem5-malaria-v1") {
+      const o = onnxs.find(f => /malaria/i.test(f.name)); if (!o) { rbcStatus("Select malaria_model.onnx together with malaria_labels.json.", true); return; }
+      try { await initRuntime(); MAL.session = await ort.InferenceSession.create(new Uint8Array(await o.arrayBuffer()), { executionProviders: ["wasm"] }); MAL.meta = m;
+        toast("Malaria screening model loaded (experimental — see models_experimental/README.md)"); rbcStatus((RBC.statusMsg || "") + ` Malaria screen ready (test sensitivity ${m.test ? (100 * m.test.sensitivity).toFixed(0) + "%" : "?"}, specificity ${m.test ? (100 * m.test.specificity).toFixed(1) + "%" : "?"}).`); }
+      catch (e) { MAL.session = null; rbcStatus("Malaria model could not be loaded: " + (e.message || e), true); }
+      files = files.filter(f => f !== j && f !== o); continue;
+    }
+    if (m.format !== "haem5-rbc-v1") continue;
+    const o = onnxs.find(f => /rbc/i.test(f.name)) || (onnxs.length === 1 && jsons.length === 1 ? onnxs[0] : null);
+    if (!o) { rbcStatus("Select rbc_model.onnx together with rbc_labels.json.", true); return; }
+    try { rbcStatus("Loading red cell model…"); await startRbcSession(new Uint8Array(await o.arrayBuffer()), m, "loaded from file"); }
+    catch (e) { RBC.session = null; rbcStatus("Red cell model could not be loaded: " + (e.message || e), true); }
+    files = files.filter(f => f !== j && f !== o);
+  }
+  if (!files.length) return;
   const onnx = files.find(f => /\.onnx$/i.test(f.name)), js = files.find(f => /\.json$/i.test(f.name));
-  if (!onnx || !js) { aiStatus("Select both files together: cell_model.onnx and cell_labels.json.", true); return; }
+  if (!onnx || !js) { aiStatus("Select the model files together: cell_model.onnx + cell_labels.json, and/or rbc_model.onnx + rbc_labels.json.", true); return; }
   try {
     aiStatus("Loading model…");
     await startSession(new Uint8Array(await onnx.arrayBuffer()), JSON.parse(await js.text()), "loaded from file");
@@ -470,6 +573,150 @@ function loadBuiltinModel() {
     finally { AI.loading = null; }
   })();
   return AI.loading;
+}
+function rbcStatus(msg, err) { RBC.statusMsg = msg; const s = $("#rbcStatus"); if (s) { s.textContent = msg; s.classList.toggle("err", !!err); } }
+async function startRbcSession(bytes, meta, source) {
+  if (!Array.isArray(meta.classes)) throw new Error("rbc_labels.json has no class list.");
+  await initRuntime();
+  RBC.session = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] }); RBC.meta = meta;
+  rbcStatus(`Red cell model ready (${source}): ${meta.classes.length} types${meta.test ? ` · test macro-F1 ${meta.test.macro_f1.toFixed(3)}` : ""}${meta.test_schistocyte ? ` · schistocyte sensitivity ${meta.test_schistocyte.sensitivity.toFixed(2)}` : ""}. Red cells in new slide photos are graded automatically.`);
+}
+function loadBuiltinMalaria() {
+  const B = window.HAEM5_BUILTIN_MALARIA; if (!B || MAL.session || MAL.loading) return MAL.loading || Promise.resolve();
+  MAL.loading = (async () => { try {
+      const parts = await Promise.all(B.parts.map(async u => { const r = await fetch(u); if (!r.ok) throw new Error(`could not fetch ${u}`);
+        if (B.encoding !== "base64") return new Uint8Array(await r.arrayBuffer());
+        const t = (await r.text()).replace(/\s+/g, ""), bin = atob(t), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }));
+      const bytes = new Uint8Array(parts.reduce((n, p) => n + p.length, 0)); let o = 0; for (const p of parts) { bytes.set(p, o); o += p.length; }
+      await initRuntime(); MAL.session = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] }); MAL.meta = B.labels;
+      const m = B.labels; MAL.statusMsg = ` Malaria screen ready (built-in; test AUC ${m.test ? m.test.auc.toFixed(3) : "?"}, sensitivity ${m.test ? (100 * m.test.sensitivity).toFixed(0) : "?"}%, specificity ${m.test ? (100 * m.test.specificity).toFixed(1) : "?"}%).`;
+      rbcStatus((RBC.statusMsg || "").replace(/ Malaria screen ready.*$/, "") + MAL.statusMsg);
+    } catch (e) { MAL.session = null; } finally { MAL.loading = null; } })();
+  return MAL.loading;
+}
+function loadBuiltinRbc() {
+  const B = window.HAEM5_BUILTIN_RBC; if (!B || RBC.session || RBC.loading) return RBC.loading || Promise.resolve();
+  RBC.loading = (async () => { try {
+      const parts = await Promise.all(B.parts.map(async u => { const r = await fetch(u); if (!r.ok) throw new Error(`could not fetch ${u}`);
+        if (B.encoding !== "base64") return new Uint8Array(await r.arrayBuffer());
+        const t = (await r.text()).replace(/\s+/g, ""), bin = atob(t), a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return a; }));
+      const bytes = new Uint8Array(parts.reduce((n, p) => n + p.length, 0)); let o = 0; for (const p of parts) { bytes.set(p, o); o += p.length; }
+      await startRbcSession(bytes, B.labels, "built-in");
+    } catch (e) { rbcStatus("The built-in red cell model could not be loaded (" + (e.message || e) + ").", true); } finally { RBC.loading = null; } })();
+  return RBC.loading;
+}
+/* Classifies the red cells found in one field: square crops of `crop_rbc_diameters` × the field's median red cell
+   diameter (the same framing the model was trained on), at most 150 cells per field, 32 per batch. */
+async function classifyRedCells(cv, r) {
+  if (!RBC.session || !r.rbcCells || !r.rbcCells.length) return 0;
+  const m = RBC.meta, size = m.img_size || 128, side = (m.crop_rbc_diameters || 2) * r.rbcDiameter;
+  let cellsList = r.rbcCells; if (cellsList.length > 150) cellsList = cellsList.filter((_, i) => i % Math.ceil(cellsList.length / 150) === 0);
+  const tmp = document.createElement("canvas"); tmp.width = tmp.height = size; const tx = tmp.getContext("2d", { willReadFrequently: true });
+  tx.imageSmoothingEnabled = true; tx.imageSmoothingQuality = "high";
+  const agg = state.rbcAI || { n: 0, counts: {}, fields: 0 }; agg.fields++;
+  // 4-rotation averaging (0°, 90°, 180°, 270°): +1% accuracy and better schistocyte sensitivity on detector-found cells.
+  const R = 4;
+  for (let b = 0; b < cellsList.length; b += 8) {
+    const batch = cellsList.slice(b, b + 8), n = size * size * 3, data = new Float32Array(batch.length * R * n), thumbs = [];
+    batch.forEach((c, i) => {
+      for (let r = 0; r < R; r++) {
+        tx.setTransform(1, 0, 0, 1, 0, 0); tx.fillStyle = "#e8e0e2"; tx.fillRect(0, 0, size, size);
+        tx.translate(size / 2, size / 2); tx.rotate(r * Math.PI / 2); tx.translate(-size / 2, -size / 2);
+        tx.drawImage(cv, c.cx - side / 2, c.cy - side / 2, side, side, 0, 0, size, size);
+        tx.setTransform(1, 0, 0, 1, 0, 0);
+        data.set(preprocess(tx.getImageData(0, 0, size, size).data, size, m.mean, m.std), (i * R + r) * n);
+        if (r === 0) thumbs.push(tmp.toDataURL("image/jpeg", 0.9));
+      }
+    });
+    const out = await RBC.session.run({ [RBC.session.inputNames[0]]: new ort.Tensor("float32", data, [batch.length * R, 3, size, size]) });
+    const logits = out[RBC.session.outputNames[0]].data, C = m.classes.length;
+    batch.forEach((c, i) => {
+      const p = new Array(C).fill(0);
+      for (let r = 0; r < R; r++) softmax(Array.from(logits.slice((i * R + r) * C, (i * R + r + 1) * C))).forEach((v, k) => { p[k] += v / R; });
+      const k = p.indexOf(Math.max(...p)), cls = m.classes[k];
+      agg.counts[cls] = (agg.counts[cls] || 0) + 1; agg.n++;
+      if (RBC.cells.length < 3000) RBC.cells.push({ id: Math.random().toString(36).slice(2, 9), src: thumbs[i], pred: cls, conf: p[k], label: cls, reviewed: false });
+      const ex = RBC.examples[cls] = RBC.examples[cls] || []; if (ex.length < 12 && (cls !== "normal" || ex.length < 6)) ex.push({ src: thumbs[i], conf: p[k] });
+    });
+  }
+  state.rbcAI = agg; return cellsList.length;
+}
+/* Malaria screen: each red cell is cut out tightly and everything outside a circle is blacked out, matching the
+   NIH segmented-cell training images. Positive calls are suggestions for microscopy, never a diagnosis. */
+async function screenMalaria(cv, r) {
+  if (!MAL.session || !r.rbcCells || !r.rbcCells.length) return;
+  const m = MAL.meta, size = m.img_size || 128, thr = m.threshold ?? 0.5, pIdx = m.classes.indexOf("parasitized");
+  let list = r.rbcCells.filter(c => c.d >= 0.6 * r.rbcDiameter); if (list.length > 150) list = list.filter((_, i) => i % Math.ceil(list.length / 150) === 0);
+  const tmp = document.createElement("canvas"); tmp.width = tmp.height = size; const tx = tmp.getContext("2d", { willReadFrequently: true });
+  const agg = state.malariaAI || { n: 0, pos: 0, fields: 0, spec: m.test ? m.test.specificity : null }; agg.fields++;
+  for (let b = 0; b < list.length; b += 32) {
+    const batch = list.slice(b, b + 32), n = size * size * 3, data = new Float32Array(batch.length * n), thumbs = [];
+    batch.forEach((c, i) => {
+      const side = Math.max(c.d, 0.8 * r.rbcDiameter) * 1.1;
+      tx.fillStyle = "#000"; tx.fillRect(0, 0, size, size); tx.save(); tx.beginPath(); tx.arc(size / 2, size / 2, size * 0.47, 0, 2 * Math.PI); tx.clip();
+      tx.drawImage(cv, c.cx - side / 2, c.cy - side / 2, side, side, 0, 0, size, size); tx.restore();
+      data.set(preprocess(tx.getImageData(0, 0, size, size).data, size, m.mean, m.std), i * n); thumbs.push(tmp.toDataURL("image/jpeg", 0.7));
+    });
+    const out = await MAL.session.run({ [MAL.session.inputNames[0]]: new ort.Tensor("float32", data, [batch.length, 3, size, size]) });
+    const lg = out[MAL.session.outputNames[0]].data, C = m.classes.length;
+    batch.forEach((c, i) => { const p = softmax(Array.from(lg.slice(i * C, (i + 1) * C)))[pIdx]; agg.n++;
+      if (p >= thr) { agg.pos++; if (MAL.examples.length < 16) MAL.examples.push({ src: thumbs[i], conf: p }); } });
+  }
+  state.malariaAI = agg;
+}
+const RBC_NAMES = { normal: "normal", macrocyte: "macrocytes", microcyte: "microcytes", spherocyte: "spherocytes", target_cell: "target cells", stomatocyte: "stomatocytes",
+  ovalocyte: "ovalocytes", teardrop: "teardrop cells", burr_cell: "burr cells", schistocyte: "schistocytes", hypochromia: "hypochromic cells", elliptocyte: "elliptocytes" };
+/* Review & correct individual red cells: corrections update the counts and suggested grades, and reviewed cells can be
+   exported with the confirmed labels to fine-tune the red cell model on the laboratory's own stain. Least-confident first. */
+function rbcReviewUI() {
+  const box = el("details", { id: "rbcReview" }, el("summary", {}, `Review & correct red cells (${RBC.cells.filter(c => c.reviewed).length}/${RBC.cells.length} reviewed)`));
+  if (RBC.reviewOpen) box.open = true; box.addEventListener("toggle", () => { RBC.reviewOpen = box.open; });
+  if (!RBC.cells.length) { box.append(el("p", { class: "hint" }, "Red cells classified in this session appear here (they are not kept after the page is closed).")); return box; }
+  const classes = (RBC.meta && RBC.meta.classes) || HAEM5RBC.RBC_CLASSES;
+  const list = RBC.cells.slice().sort((a, b) => (a.reviewed - b.reviewed) || (a.conf - b.conf)).slice(0, RBC.shown);
+  const grid = el("div", { class: "rbcthumbs" });
+  for (const c of list) {
+    const sel = el("select", { style: "font-size:11px;max-width:96px" }, classes.map(k => el("option", { value: k }, RBC_NAMES[k] || k))); sel.value = c.label;
+    sel.onchange = () => { const a = state.rbcAI; if (a) { a.counts[c.label] = Math.max(0, (a.counts[c.label] || 0) - 1); a.counts[sel.value] = (a.counts[sel.value] || 0) + 1; }
+      c.label = sel.value; c.reviewed = true; changed(); drawRbcStats(); };
+    grid.append(el("div", { style: "display:flex;flex-direction:column;align-items:center;margin:2px;" + (c.reviewed ? "" : "outline:1px dashed var(--line)") },
+      el("img", { src: c.src, width: 64, height: 64, title: `AI: ${c.pred} ${(100 * c.conf).toFixed(0)}%`, style: "border-radius:4px" }), sel,
+      el("span", { class: "cf", style: "font-size:10px" }, c.label !== c.pred ? "corrected" : `${(100 * c.conf).toFixed(0)}%`)));
+  }
+  box.append(el("p", { class: "hint" }, "Least-confident cells first. Correct any wrong label (counts and suggested grades update), then mark the shown cells as reviewed. Only reviewed cells are exported for fine-tuning."), grid,
+    el("div", { class: "toolbar" },
+      RBC.shown < RBC.cells.length ? el("button", { class: "btn sm ghost", onclick: () => { RBC.shown += 120; drawRbcStats(); } }, "Show more") : null,
+      el("button", { class: "btn sm", onclick: () => { list.forEach(c => { c.reviewed = true; }); drawRbcStats(); toast(`${list.length} red cells marked as reviewed`); } }, "Mark shown cells as reviewed"),
+      el("button", { class: "btn sm", onclick: exportRedCells }, "Export reviewed red cells (.zip)")));
+  return box;
+}
+async function exportRedCells() {
+  const cells = RBC.cells.filter(c => c.reviewed);
+  if (!cells.length) { toast("Review the red cells first (correct labels, then Mark shown cells as reviewed)"); return; }
+  const files = cells.map(c => ({ name: `rbc/${c.label}/{CASE}_${c.id}.jpg`, data: Uint8Array.from(atob(c.src.split(",")[1]), ch => ch.charCodeAt(0)), c }));
+  await saveCellZip(files.map(f => ({ name: f.name, data: f.data, label: f.c.label, pred: f.c.pred, conf: f.c.conf, spec: "PB" })), "red cells", "rbc");
+}
+function drawRbcStats() {
+  const S = document.getElementById("rbcStats"); if (!S) return; S.innerHTML = ""; const a = state.rbcAI;
+  const mz = state.malariaAI;
+  if (mz && mz.n) { const pct = (100 * mz.pos / mz.n).toFixed(1), sus = HAEM5RBC.malariaSuspicious(mz);
+    S.append(el("div", { class: sus ? "warnbox urgent" : "warnbox" }, `Malaria AI screen: ${mz.pos} of ${mz.n} red cells flagged (${pct}%) in ${mz.fields} field(s) — ${!HAEM5RBC.malariaComplete(mz) ? `INCOMPLETE: at least ${HAEM5RBC.MAL_MIN_CELLS} red cells are needed (add more fields) before the screen is judged.` : sus ? "SUSPICIOUS: examine thick and thin films and confirm species and parasitaemia by microscopy." : "not suspicious (below twice the model's false-positive rate); a negative screen does not exclude malaria, especially at low parasitaemia."}`),
+      MAL.examples.length ? el("details", {}, el("summary", {}, "Review flagged cells"), el("div", { class: "rbcthumbs" }, MAL.examples.map(t => el("img", { src: t.src, width: 56, height: 56, title: `parasitized ${(100 * t.conf).toFixed(0)}%`, style: "border-radius:4px" })))) : null); }
+  if (!a || !a.n) return;
+  const rows = Object.entries(a.counts).sort((x, y) => y[1] - x[1]);
+  const sug = HAEM5RBC.gradesFromCounts(a.counts);
+  S.append(el("div", { class: "summary-row" }, el("span", {}, "Red cells classified ", el("b", {}, a.n)), el("span", {}, "Fields ", el("b", {}, a.fields)),
+    ...rows.map(([c, n]) => el("span", {}, (RBC_NAMES[c] || c) + " ", el("b", {}, (100 * n / a.n).toFixed(1) + "%")))));
+  const gr = Object.entries(sug).filter(([k, v]) => k !== "schistoPct" && v).map(([k, v]) => `${(HAEM5RBC.GRADED.find(g => HAEM5RBC.gradeKey(g[0]) === k) || [, k])[1]} ${v}`);
+  S.append(el("div", { class: "toolbar" },
+    el("span", { class: "hint" }, `Suggested ICSH grades: ${[sug.schistoPct ? `schistocytes ${sug.schistoPct}%` : null, ...gr].filter(Boolean).join("; ") || "no significant poikilocytosis"}${a.n < 500 ? ` · only ${a.n} red cells — ICSH advises ≥1000 for a schistocyte count; add more fields.` : ""} · Macrocytes, microcytes and hypochromia are graded from MCV/MCH, not from images.`),
+    el("button", { class: "btn sm primary", onclick: () => { Object.assign(state, sug); state.rbcAIApplied = true; renderForms(); changed(); toast("Red cell grades applied — review them in Blood count & film"); } }, "Apply red-cell grades"),
+    el("button", { class: "btn sm ghost", onclick: () => { state.rbcAI = null; state.malariaAI = null; RBC.examples = {}; RBC.cells = []; MAL.examples = []; changed(); drawRbcStats(); } }, "Reset red cells")));
+  S.append(rbcReviewUI());
+  const ex = el("details", {}, el("summary", {}, "Review red cell examples by type"));
+  for (const [c] of rows) { const list = RBC.examples[c] || []; if (!list.length) continue;
+    ex.append(el("div", { class: "fam" }, RBC_NAMES[c] || c), el("div", { class: "rbcthumbs" }, list.map(t => el("img", { src: t.src, width: 56, height: 56, title: `${c} ${(100 * t.conf).toFixed(0)}%`, style: "border-radius:4px;margin:2px" })))); }
+  S.append(ex);
 }
 function preprocess(rgba, size, mean, std) {
   const n = size * size, out = new Float32Array(3 * n);
@@ -503,7 +750,10 @@ function decideLabel(logits, rows, meta) {
   if (b >= 0 && thr && k !== b && avg[b] >= thr) { k = b; byThreshold = true; }
   return { cls: meta.classes[k], conf: avg[k], byThreshold };
 }
-function ingest(files) { return AI.mode === "field" ? addFields(files) : addImages(files); }
+/* Confident-cells mode: a model calibrated with an "accept" threshold (validation accuracy of accepted cells ≥ target)
+   auto-accepts cells at or above it; all others are flagged for the pathologist. Without one, cells under 60% are flagged. */
+function acceptThr() { const t = AI.meta && AI.meta.thresholds && AI.meta.thresholds.accept; return AI.confidentOn !== false && t ? t : 0.6; }
+function ingest(files) { if (!state.pilotStart) state.pilotStart = Date.now(); return AI.mode === "field" ? addFields(files) : addImages(files); }
 async function addFields(files) {
   if (window.HAEM5_AI_ALLOWED === false) { aiStatus("No consent recorded for AI-assisted analysis for this patient. Count manually.", true); return; }
   const fs = state.fieldStats || { fields: 0, cells: 0, platelets: 0, rbc: 0, edge: 0 };
@@ -516,8 +766,16 @@ async function addFields(files) {
     const W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
     const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d", { willReadFrequently: true });
     cx.drawImage(img, 0, 0, W, H);
-    const r = HAEM5DETECT.detect(cx.getImageData(0, 0, W, H).data, W, H);
+    const px = cx.getImageData(0, 0, W, H).data, q = HAEM5DETECT.quality(px, W, H);
+    const qIssues = [q.focus < 0.03 ? "likely blurred — retake" : q.focus < 0.045 ? "may be soft — check focus" : null,
+      q.brightness < 70 || q.dark > 0.3 ? "too dark" : null, q.clipped > 0.35 ? "overexposed" : null].filter(Boolean);
+    if (qIssues.length) { (fs.quality = fs.quality || []).push(`${f.name}: ${qIssues.join(", ")}`); if (fs.quality.length > 30) fs.quality.shift(); }
+    const r = HAEM5DETECT.detect(px, W, H);
     fs.fields++; fs.platelets += r.platelets; fs.rbc += r.rbc;
+    if (!RBC.session && RBC.loading) await RBC.loading;
+    if (RBC.session) { aiStatus(`Grading red cells in ${f.name}…`); try { await classifyRedCells(cv, r); } catch (e) { rbcStatus("Red cell grading failed: " + (e.message || e), true); } }
+    if (!MAL.session && MAL.loading) await MAL.loading;
+    if (MAL.session) { aiStatus(`Malaria screen in ${f.name}…`); try { await screenMalaria(cv, r); } catch (e) { rbcStatus("Malaria screen failed: " + (e.message || e), true); } }
     for (const c of r.wbc) {
       const side = Math.min(c.size, W, H), x = Math.max(0, Math.min(W - side, c.cx - side / 2)), y = Math.max(0, Math.min(H - side, c.cy - side / 2));
       const out = document.createElement("canvas"); out.width = out.height = 360;
@@ -528,7 +786,7 @@ async function addFields(files) {
     }
     URL.revokeObjectURL(url);
   }
-  state.fieldStats = fs; changed(); drawFieldStats(); drawThumbs();
+  state.fieldStats = fs; changed(); drawFieldStats(); drawRbcStats(); drawThumbs();
   if (!AI.session) await loadBuiltinModel();
   if (AI.session) classifyAll(); else aiStatus(`Found ${n} nucleated cell(s). Load a model to classify them, or label them by hand below.`);
 }
@@ -537,8 +795,38 @@ function pltEstimate(fs) {
   const per = fs.platelets / fs.fields;
   return { per: Math.round(per * 10) / 10, lo: Math.round(per * 15), hi: Math.round(per * 20), perRbc: fs.rbc ? Math.round(1000 * fs.platelets / fs.rbc) : null };
 }
+/* Pilot sheet helper: one tab-separated row matching HAEM5_JIMSH_pilot_sheet.xlsx columns N–Y. */
+function pilotRow() {
+  const c = cnt[cntSpec] || {}, g = k => c[k] || 0;
+  const groups = { blast: ["blast", "monoblast", "promonocyte"], neut: ["segmented_neutrophil", "band_neutrophil"], lymph: ["lymphocyte", "atypical_lymphocyte", "immature_lymphocyte"],
+    mono: ["monocyte"], eos: ["eosinophil"], baso: ["basophil"] };
+  const n = totals(cntSpec) || 0, pct = keys => n ? Math.round(1000 * keys.reduce((a, k) => a + g(k), 0) / n) / 10 : "";
+  const known = Object.values(groups).flat(), other = n ? Math.round(1000 * CELLS.filter(([k, , , , ex]) => !ex && !known.includes(k)).reduce((a, [k]) => a + g(k), 0) / n) / 10 : "";
+  const sug = state.rbcAI ? HAEM5RBC.gradesFromCounts(state.rbcAI.counts) : {};
+  const grades = HAEM5RBC.featureList(Object.assign({}, sug, state)).join("; ") || (state.rbcAI ? "no significant poikilocytosis" : "");
+  const schisto = state.schistoPct !== undefined && state.schistoPct !== "" ? state.schistoPct : (sug.schistoPct ?? "");
+  const gal = (state.cellGallery || []).filter(x => x.spec === cntSpec), relab = gal.filter(x => x.pred && x.pred !== x.label).length;
+  const mins = state.pilotStart ? Math.round((Date.now() - state.pilotStart) / 6000) / 10 : "";
+  return [pct(groups.blast), pct(groups.neut), pct(groups.lymph), pct(groups.mono), pct(groups.eos), pct(groups.baso), other, grades, schisto, n, relab, mins];
+}
+async function copyPilotRow() {
+  const row = pilotRow(), text = row.join("\t");
+  try { await navigator.clipboard.writeText(text); toast("Pilot row copied — paste into column N of this slide's row"); }
+  catch { const t = el("textarea", { style: "width:100%;height:60px;font:12px var(--f-mono)" }, text); const box = document.getElementById("cntSummary"); if (box) { box.append(t); t.select(); } toast("Copy blocked here — the row is selected below; press Ctrl+C"); }
+}
+function countProgress() {
+  const P = document.getElementById("countProgress"); if (!P) return; P.innerHTML = "";
+  const fs = state.fieldStats || { fields: 0, cells: 0 }, wbc = (typeof totals === "function" ? totals(cntSpec) : 0) + AI.items.filter(x => x.label).length;
+  const rbc = state.rbcAI ? state.rbcAI.n : 0, wt = target || 200, perField = fs.fields ? fs.cells / fs.fields : 0;
+  const more = Math.max(wt - wbc > 0 && perField ? Math.ceil((wt - wbc) / perField) : 0, rbc < 1000 && RBC.session ? Math.ceil((1000 - rbc) / Math.max(1, rbc / Math.max(1, fs.fields)) || 0) : 0, fs.fields < 10 ? 10 - fs.fields : 0);
+  const bar = (n, t, label) => el("div", { class: "pbar" }, el("span", {}, `${label} ${n}/${t}`), el("i", { style: `width:${Math.min(100, 100 * n / t)}%` + (n >= t ? ";background:var(--ok)" : "") }));
+  P.append(bar(wbc, wt, "White cells"), RBC.session ? bar(rbc, 1000, "Red cells") : null, bar(fs.fields || 0, 10, "Fields"),
+    el("span", { class: "hint" }, fs.fields ? (more ? `About ${more} more photo${more === 1 ? "" : "s"} needed` + (perField ? ` (≈${perField.toFixed(1)} white cells per photo)` : "") : "Enough photos for this report ✓") : "Targets: 200 white cells, 1000 red cells (ICSH), 10 fields for the platelet estimate."));
+}
 function drawFieldStats() {
+  countProgress();
   const S = document.getElementById("fieldStats"); if (!S) return; S.innerHTML = ""; const fs = state.fieldStats; if (!fs || !fs.fields) return;
+  if (fs.quality && fs.quality.length) S.append(el("div", { class: "warnbox", style: "flex-basis:100%" }, el("b", {}, "Photo quality: "), fs.quality.slice(-6).join("; "), fs.quality.length > 6 ? ` (+${fs.quality.length - 6} more)` : "", " — cells from these photos are still shown; retake if counts look wrong."));
   const p = pltEstimate(fs);
   S.append(el("span", {}, "Fields ", el("b", {}, fs.fields)), el("span", {}, "Nucleated cells found ", el("b", {}, fs.cells)),
     el("span", {}, "Platelets / field ", el("b", {}, p.per)), el("span", {}, "≈ platelets ", el("b", {}, `${p.lo}–${p.hi} ×10⁹/L`)),
@@ -560,9 +848,36 @@ async function classifyAll() {
     } catch (e) { it.pred = "error"; it.conf = 0; }
     if (++i % 8 === 0) { aiStatus(`Classifying ${i}/${todo.length}…`); drawThumbs(); }
   }
-  drawThumbs();
-  const low = AI.items.filter(x => x.conf !== null && x.conf < 0.6).length;
+  drawThumbs(); countProgress();
+  const thr = acceptThr(), low = AI.items.filter(x => x.conf !== null && x.conf < thr).length;
   aiStatus(`Classified ${AI.items.length} cells. ${low ? low + " low-confidence cell(s) highlighted — review before adding." : "Review the labels, then add them to the count."}`);
+}
+/* Explainability: occlusion sensitivity. The cell image is classified again with each of 7×7 patches greyed out;
+   patches whose removal most lowers the predicted class's probability are shown in red ("what the AI looked at"). */
+async function occlusionMap(url) {
+  const size = AI.meta.img_size || 224, G = 7, ps = size / G, img = new Image(); img.src = url; await img.decode();
+  const cv = document.createElement("canvas"); cv.width = cv.height = size; const cx = cv.getContext("2d", { willReadFrequently: true });
+  cx.drawImage(img, 0, 0, size, size);
+  const base = preprocess(cx.getImageData(0, 0, size, size).data, size, AI.meta.mean, AI.meta.std), n = base.length, N = 1 + G * G;
+  const data = new Float32Array(N * n); data.set(base, 0);
+  for (let g = 0; g < G * G; g++) { const row = data.subarray((g + 1) * n, (g + 2) * n); row.set(base);
+    const x0 = Math.round((g % G) * ps), y0 = Math.round(Math.floor(g / G) * ps), x1 = Math.round(x0 + ps), y1 = Math.round(y0 + ps);
+    for (let ch = 0; ch < 3; ch++) for (let y = y0; y < y1; y++) row.fill(0, ch * size * size + y * size + x0, ch * size * size + y * size + x1); }
+  const C = AI.meta.classes.length, probs = [];
+  for (let b = 0; b < N; b += 10) { const k = Math.min(10, N - b);
+    const out = await AI.session.run({ [AI.meta.input_name || AI.session.inputNames[0]]: new ort.Tensor("float32", data.slice(b * n, (b + k) * n), [k, 3, size, size]) });
+    const lg = out[AI.session.outputNames[0]].data; for (let i = 0; i < k; i++) probs.push(softmax(Array.from(lg.slice(i * C, (i + 1) * C)))); }
+  const top = probs[0].indexOf(Math.max(...probs[0])), drop = probs.slice(1).map(p => Math.max(0, probs[0][top] - p[top])), mx = Math.max(1e-6, ...drop);
+  const hm = document.createElement("canvas"); hm.width = hm.height = G; const hx = hm.getContext("2d");
+  drop.forEach((d, g) => { hx.fillStyle = `rgba(220,20,60,${(0.75 * d / mx).toFixed(3)})`; hx.fillRect(g % G, Math.floor(g / G), 1, 1); });
+  cx.imageSmoothingEnabled = true; cx.drawImage(hm, 0, 0, size, size);
+  const small = document.createElement("canvas"); small.width = small.height = 72; small.getContext("2d").drawImage(cv, 0, 0, 72, 72);
+  return { full: cv.toDataURL("image/jpeg", 0.85), thumb: small.toDataURL("image/jpeg", 0.75), cls: AI.meta.classes[top] };
+}
+async function explain(it) {
+  if (!AI.session || !it.url) return;
+  try { aiStatus("Computing heatmap…"); const h = await occlusionMap(it.url); it.heat = h.full; it.heatThumb = h.thumb; it.showHeat = true; drawThumbs(); aiStatus(`Heatmap: red areas most influenced the call "${h.cls.replace(/_/g, " ")}".`); }
+  catch (e) { aiStatus("Heatmap failed: " + (e.message || e), true); }
 }
 function drawThumbs() {
   const T = $("#thumbs"); if (!T) return; T.innerHTML = "";
@@ -570,7 +885,10 @@ function drawThumbs() {
   for (const it of AI.items) {
     const s = el("select", { "aria-label": "Cell label for " + it.name }, el("option", { value: "" }, "— label —"), opts.map(([k, n]) => el("option", { value: k }, n)));
     s.value = it.label || ""; s.onchange = () => { it.label = s.value; };
-    T.append(el("div", { class: "th" + ((it.conf !== null && it.conf < 0.6) || it.edge ? " low" : "") }, el("img", { src: it.url, alt: it.name }), s, it.edge ? el("span", { class: "cf" }, "cut by image edge") : null,
+    const im = el("img", { src: it.showHeat && it.heat ? it.heat : it.url, alt: it.name, title: it.heat ? "Click to toggle the heatmap" : "" });
+    if (it.heat) im.onclick = () => { it.showHeat = !it.showHeat; drawThumbs(); };
+    T.append(el("div", { class: "th" + ((it.conf !== null && it.conf < acceptThr()) || it.edge ? " low" : "") }, im, s,
+      it.pred && it.pred !== "error" && !it.heat ? el("button", { class: "btn sm ghost", onclick: () => explain(it), title: "Show which part of the cell drove the AI's call" }, "Why?") : null, it.edge ? el("span", { class: "cf" }, "cut by image edge") : null,
       el("span", { class: "cf" }, it.pred && it.pred !== "error" ? `AI: ${it.pred.replace(/_/g, " ")} ${(it.conf * 100).toFixed(0)}%` : it.pred === "error" ? "AI: failed" : "not classified")));
   }
 }
@@ -584,22 +902,69 @@ async function addAIToCount() {
   const gal = state.cellGallery || [];
   for (const it of lab) {
     cnt[cntSpec][it.label] = (cnt[cntSpec][it.label] || 0) + 1;
-    if (gal.length < 600) gal.push({ id: Math.random().toString(36).slice(2, 9), spec: cntSpec, label: it.label, pred: it.pred && it.pred !== "error" ? it.pred : null,
-      conf: it.conf, edge: !!it.edge, src: it.name, thumb: await thumbOf(it.url) });
+    const gid = Math.random().toString(36).slice(2, 9); FULLCROPS.set(gid, it.url);
+    if (gal.length < 600) gal.push({ id: gid, spec: cntSpec, label: it.label, pred: it.pred && it.pred !== "error" ? it.pred : null,
+      conf: it.conf, edge: !!it.edge, src: it.name, thumb: await thumbOf(it.url), heat: it.heatThumb || null, thr: acceptThr() });
   }
   state.cellGallery = gal; state.counts = cnt;
   if (AI.items.some(x => x.label && x.pred && x.pred !== "error")) { state.aiUsed = true; changed(); }
-  store.set("haem5.counts", cnt); const n = lab.length; AI.items = AI.items.filter(x => !x.label); drawThumbs(); drawKeys();
+  store.set("haem5.counts", cnt); const n = lab.length; AI.items = AI.items.filter(x => !x.label); drawThumbs(); drawKeys(); drawGallery(); countProgress();
   toast(`${n} cells added to the ${cntSpec === "PB" ? "blood" : "marrow"} count`);
 }
 
 /* ---------------- cell gallery (review by the authorising pathologist) ---------------- */
 let galFilter = "flagged";
-const isFlagged = g => (g.conf !== null && g.conf !== undefined && g.conf < 0.6) || g.edge || (g.pred && g.pred !== g.label) || g.changed;
+const isFlagged = g => (g.conf !== null && g.conf !== undefined && g.conf < (g.thr || 0.6)) || g.edge || (g.pred && g.pred !== g.label) || g.changed;
+/* Minimal ZIP writer (stored, no compression) — JPEGs are already compressed. */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {   // files: [{name, data: Uint8Array}]
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const nm = enc.encode(f.name), crc = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(8, 0, true); h.setUint32(14, crc, true);
+    h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, f.data);
+    const c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true);
+    c.setUint32(16, crc, true); c.setUint32(20, f.data.length, true); c.setUint32(24, f.data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nm); off += 30 + nm.length + f.data.length;
+  }
+  const csize = central.reduce((n, x) => n + x.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: "application/zip" });
+}
+async function exportCells() {
+  const gal = (state.cellGallery || []).filter(g => FULLCROPS.has(g.id) && g.label && !["artefact", "other"].includes(g.label));
+  if (!gal.length) { toast("No reviewed cells with full-size images in this session. Add cells from slide photos first, then export before closing the page."); return; }
+  const files = [];
+  for (const g of gal) files.push({ name: `cells/${g.label}/{CASE}_${g.id}.jpg`, data: new Uint8Array(await (await fetch(FULLCROPS.get(g.id))).arrayBuffer()), label: g.label, pred: g.pred, conf: g.conf, spec: g.spec });
+  await saveCellZip(files, "white cells", "wbc");
+}
+/* Writes reviewed cells + labels.csv into a zip and offers it for download. No patient identifiers: the case code is a one-way hash. */
+async function saveCellZip(items, what, kind) {
+  const stain = ($("#expStain") || {}).value || "Leishman";
+  const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(state.labNo || "") + Date.now())))).slice(0, 4).map(b => b.toString(16).padStart(2, "0")).join("");
+  const caseId = "C" + hash, files = [], rows = ["file,label,ai_pred,ai_conf,relabelled,specimen,stain,case,model"];
+  for (const it of items) { const name = it.name.replace("{CASE}", caseId); files.push({ name, data: it.data });
+    rows.push([name, it.label, it.pred || "", it.conf != null ? (+it.conf).toFixed(3) : "", it.pred && it.pred !== it.label ? 1 : 0, it.spec, stain, caseId, kind].join(",")); }
+  files.push({ name: "labels.csv", data: new TextEncoder().encode(rows.join("\n") + "\n") });
+  files.push({ name: "README.txt", data: new TextEncoder().encode(`HAEM5 Reporter — reviewed ${what} for fine-tuning\nModel: ${kind}\nStain: ${stain}\nCells: ${items.length}\nLabels are the reviewing pathologist's final labels. No patient identifiers are included (case code is a one-way hash).\nUse with HAEM5_finetune_local_stain.ipynb.\n`) });
+  const blob = makeZip(files), filename = `haem5_${kind}_${stain.replace(/[^A-Za-z]/g, "")}_${caseId}.zip`;
+  try {
+    const d = window.claude && claude.use ? await claude.use("downloads") : null;
+    if (d) { await d.save({ filename, data: blob }); toast(`${items.length} ${what} exported`); return; }
+  } catch (e) { if (e && e.code === "declined") return; }
+  const a = el("a", { href: URL.createObjectURL(blob), download: filename }); document.body.append(a); a.click(); a.remove();
+  toast(`${items.length} ${what} exported to ${filename}`);
+}
+function aiAgreement(gal) { const ai = (gal || state.cellGallery || []).filter(g => g.pred); const agree = ai.filter(g => g.label === g.pred).length;
+  return { n: ai.length, agree, pct: ai.length ? Math.round(1000 * agree / ai.length) / 10 : null }; }
 function galleryUI() {
   const fs = el("fieldset", { id: "galleryBox" }, el("legend", {}, "Cell gallery — every counted cell, for review"));
   fs.append(el("div", { class: "toolbar" }, el("div", { class: "seg", id: "galSeg" }, [["flagged", "Flagged"], ["all", "All cells"]].map(([k, n]) =>
     el("button", { class: galFilter === k ? "on" : "", onclick: () => { galFilter = k; drawGallery(); } }, n))), el("span", { class: "hint", id: "galInfo" })),
+    el("div", { class: "toolbar" }, el("label", { class: "hint" }, "Stain ", el("select", { id: "expStain" }, ["Leishman", "May-Grünwald-Giemsa", "Giemsa", "Wright", "Wright-Giemsa", "Field", "Other"].map(x => el("option", { value: x }, x)))),
+      el("button", { class: "btn sm", onclick: exportCells, title: "Full-size cell images with your confirmed labels, for fine-tuning the model on your stain" }, "Export reviewed cells (.zip)")),
     el("div", { class: "thumbs", id: "galGrid" }));
   return fs;
 }
@@ -607,7 +972,8 @@ function drawGallery() {
   const G = document.getElementById("galGrid"); if (!G) return;
   document.querySelectorAll("#galSeg button").forEach((b, i) => b.classList.toggle("on", ["flagged", "all"][i] === galFilter));
   const gal = state.cellGallery || [], flagged = gal.filter(isFlagged);
-  document.getElementById("galInfo").textContent = gal.length ? `${gal.length} cells · ${flagged.length} flagged (low confidence, cut by edge, or label changed). Relabel any cell and the counts update.` : "Cells you add from slide photos appear here, so the authorising pathologist can review them.";
+  const ag = aiAgreement(gal);
+  document.getElementById("galInfo").textContent = gal.length ? `${gal.length} cells · ${flagged.length} flagged (low confidence, cut by edge, or label changed)${ag.n ? ` · AI–pathologist agreement ${ag.pct}% (${ag.agree}/${ag.n})` : ""}. Relabel any cell and the counts update; click a cell image to show what the AI looked at.` : "Cells you add from slide photos appear here, so the authorising pathologist can review them.";
   G.innerHTML = "";
   for (const g of (galFilter === "flagged" ? flagged : gal)) {
     const sel = el("select", { "aria-label": "Label for cell " + g.id }, CELLS.map(([k, n]) => el("option", { value: k }, n)));
@@ -618,7 +984,9 @@ function drawGallery() {
       g.label = nw; g.changed = true; state.relabelled = (state.relabelled || 0) + 1;
       applyCounts(g.spec, true); drawKeys(); drawGallery(); toast("Relabelled; counts updated");
     };
-    G.append(el("div", { class: "th" + (isFlagged(g) ? " low" : "") }, g.thumb ? el("img", { src: g.thumb, alt: "cell" }) : el("div", { class: "hint" }, "no image"), sel,
+    const gi = g.thumb ? el("img", { src: g.showHeat && g.heat ? g.heat : g.thumb, alt: "cell", title: g.heat ? "Click to toggle the AI heatmap" : "" }) : el("div", { class: "hint" }, "no image");
+    if (g.heat) gi.onclick = () => { g.showHeat = !g.showHeat; drawGallery(); };
+    G.append(el("div", { class: "th" + (isFlagged(g) ? " low" : "") }, gi, sel,
       el("span", { class: "cf" }, [g.pred ? `AI: ${g.pred.replace(/_/g, " ")} ${Math.round((g.conf || 0) * 100)}%` : "manual", g.edge ? "edge" : "", g.changed ? "relabelled" : ""].filter(Boolean).join(" · "))));
   }
 }
@@ -635,6 +1003,7 @@ function reportUI() {
     el("div", { class: "grid" }, fieldEl(["comment", "Comment / recommendations", "area"]), fieldEl(["pathologist", "Reporting pathologist", "text"]), fieldEl(["reportDate", "Report date", "text"]))));
   box.querySelectorAll("textarea, input").forEach(x => x.addEventListener("input", () => renderReport()));
   box.append(el("div", { class: "toolbar" }, el("button", { class: "btn primary", onclick: copyReport }, "Copy report"), el("button", { class: "btn", onclick: () => { renderReport(true); toast("Report regenerated from case"); } }, "Regenerate from case"),
+    el("button", { class: "btn", onclick: printReport, title: "Print, or choose Save as PDF in the print dialog" }, "Print / PDF"),
     el("span", { class: "hint" }, "Edits made in the box below are kept until you regenerate.")));
   box.append(el("div", { class: "report" }, el("p", { class: "dxline", id: "dxPreview" }), el("textarea", { id: "reportText", "aria-label": "Report text" })));
   return box;
@@ -651,10 +1020,11 @@ function buildReport() {
   L.push([line("Referred by", s.clinician), line("Received", s.dateRec)].filter(Boolean).join("   "));
   if (s.specimen) L.push(line("Specimen", s.specimen));
   if (s.clinical) { H("Clinical details"); L.push(s.clinical); }
-  const cbc = [line("Hb", s.hb, "g/dL"), line("Hct", s.hct, "%"), line("WBC", s.wbc, "×10⁹/L"), line("ANC", s.anc, "×10⁹/L"), line("Monocytes", s.amc, "×10⁹/L"), line("Eosinophils", s.aec, "×10⁹/L"), line("Platelets", s.plt, "×10⁹/L")].filter(Boolean);
-  if (cbc.length || s.pbFilm || s.diffPB || s.rbcMorph) { H("Peripheral blood smear");
-    if (cbc.length) L.push("Blood count: " + cbc.join("; "));
-    if (s.rbcMorph) L.push("Red cells: " + s.rbcMorph);
+  const cbc = HAEM5CBC.reportLines(s, cbcOpts());
+  const rbcL = HAEM5RBC.reportLines(s);
+  if (cbc.length || s.pbFilm || s.diffPB || rbcL.length) { H("Peripheral blood smear");
+    L.push(...cbc);
+    L.push(...rbcL);
     if (s.diffPB) L.push("White cells — differential: " + s.diffPB);
     const nPB = totals("PB"); if (nPB > 0 && nPB < 100) L.push(`Limitation: differential based on only ${nPB} cells because of leucopenia; percentages, including blasts, are imprecise and should be interpreted with caution.`);
     if (s.pbBlast !== undefined && s.pbBlast !== "") L.push(`Blasts (incl. equivalents): ${s.pbBlast}%`);
@@ -662,7 +1032,7 @@ function buildReport() {
     if (pbOnly && s.auer) L.push("Auer rods seen.");
     const pe = pltEstimate(s.fieldStats);
     if (s.pltMorph || pe) L.push("Platelets: " + [s.pltMorph, pe && `film estimate ~${pe.lo}–${pe.hi} ×10⁹/L (${pe.per}/oil field, ${s.fieldStats.fields} fields)`].filter(Boolean).join("; "));
-    if (s.fieldStats && s.fieldStats.cells) L.push(`Method: ${s.fieldStats.cells} nucleated cells located automatically in ${s.fieldStats.fields} digital fields${s.aiUsed ? " and classified with AI assistance" : ""}; every cell reviewed by the reporting pathologist.`); }
+    if (s.fieldStats && s.fieldStats.cells) { const ag = aiAgreement(s.cellGallery); L.push(`Method: ${s.fieldStats.cells} nucleated cells located automatically in ${s.fieldStats.fields} digital fields${s.aiUsed ? " and classified with AI assistance" : ""}; every cell reviewed by the reporting pathologist${ag.n ? ` (AI label kept for ${ag.agree}/${ag.n} cells, ${ag.pct}%)` : ""}${AI.meta && AI.meta.thresholds && AI.meta.thresholds.accept && AI.confidentOn !== false ? `; cells at ≥${Math.round(100 * AI.meta.thresholds.accept)}% confidence were auto-accepted per the model's validation calibration, all others reviewed individually` : ""}.`); } }
   const asp = [s.bmAspirate, s.diffBM && "Differential: " + s.diffBM, s.bmBlast !== "" && s.bmBlast != null && `Blasts (incl. equivalents): ${s.bmBlast}%`,
     s.ringSid !== "" && s.ringSid != null && `Ring sideroblasts: ${s.ringSid}% of erythroblasts`,
     [s.dysEry && "erythroid", s.dysGran && "granulocytic", s.dysMega && "megakaryocytic"].filter(Boolean).length ? "Dysplasia (≥10%): " + [s.dysEry && "erythroid", s.dysGran && "granulocytic", s.dysMega && "megakaryocytic"].filter(Boolean).join(", ") : null,
@@ -693,6 +1063,32 @@ function renderReport(force) {
   if (force) reportEdited = false;
   if (!reportEdited) t.value = buildReport();
   t.oninput = () => { reportEdited = true; };
+}
+async function verifyCode(text) {
+  try { const h = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+    return Array.from(h.slice(0, 6), b => b.toString(16).padStart(2, "0")).join("").toUpperCase().replace(/(.{4})(?=.)/g, "$1-"); } catch { return "—"; }
+}
+async function printReport() {
+  const text = ($("#reportText") || {}).value || buildReport(), code = await verifyCode(text);
+  let lab = "Department of Pathology"; try { lab = localStorage.getItem("haem5.labName") || window.HAEM5_LAB_NAME || lab; } catch {}
+  const esc = t => t.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const lines = text.split("\n"), html = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i], nx = lines[i + 1] || "";
+    if (/^-+$/.test(l)) continue;
+    if (/^-+$/.test(nx) && l.trim()) { html.push(`<h3>${esc(l)}</h3>`); continue; }
+    if (/^(URGENT|CRITICAL)/.test(l)) { html.push(`<p class="crit">${esc(l)}</p>`); continue; }
+    html.push(l.trim() ? `<p>${esc(l).replace(/\[(CRITICAL [LH]|[LH]);/g, '<b class="fl">[$1</b>;')}</p>` : "");
+  }
+  let pv = document.getElementById("printView"); if (!pv) { pv = el("div", { id: "printView" }); document.body.append(pv); }
+  pv.innerHTML = `<div class="lh"><div class="lab">${esc(lab)}</div><div class="sub">Haematopathology report · WHO-HAEM5 (2022)</div></div>${html.join("")}
+    <div class="foot">Verification code <b>${code}</b> (SHA-256 of the report text) · Printed ${new Date().toLocaleString("en-GB")}${state.authorised ? "" : " · <b>NOT AUTHORISED — draft for review</b>"}<br>
+    AI-assisted analysis is decision support only; this report is valid only when authorised by the reporting pathologist.</div>`;
+  document.body.classList.add("printing");
+  const done = () => { document.body.classList.remove("printing"); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  try { window.print(); } catch { toast("Printing is blocked here — use the platform version to print or save as PDF"); }
+  setTimeout(done, 1500);
 }
 async function copyReport() { const t = $("#reportText"); try { await navigator.clipboard.writeText(t.value); toast("Report copied"); } catch { t.focus(); t.select(); toast("Press Ctrl/⌘+C to copy"); } }
 

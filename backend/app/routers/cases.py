@@ -29,6 +29,8 @@ class CaseUpdate(BaseModel):
     diagnosis: str | None = None
     report: str | None = None
     ai_used: bool = False
+    ai_cells: int | None = None
+    ai_agree: int | None = None
 
 
 _NAMES: dict = {}
@@ -44,7 +46,7 @@ def _load_names(db: Session):
 
 def case_out(c: Case, p: Patient, full: bool) -> dict:
     out = {"id": c.id, "lab_no": c.lab_no, "patient_id": p.id, "pseudonym": p.pseudonym, "diagnosis": c.diagnosis,
-           "status": c.status, "ai_used": c.ai_used, "updated_at": c.updated_at, "signed_at": c.signed_at,
+           "status": c.status, "ai_used": c.ai_used, "ai_cells": c.ai_cells, "ai_agree": c.ai_agree, "updated_at": c.updated_at, "signed_at": c.signed_at,
            "prepared_at": c.prepared_at, "prepared_by": _name(c.prepared_by), "signed_by": _name(c.signed_by), "return_note": c.return_note,
            "permissions": {"ai_allowed": "ai_assisted_analysis" in active_purposes(p),
                            "processing_allowed": "diagnostic_reporting" in active_purposes(p) and not p.erased_at}}
@@ -111,6 +113,8 @@ def update_case(cid: str, body: CaseUpdate, request: Request, u: User = Depends(
     c.diagnosis = (body.diagnosis or "")[:300] or None
     c.report_enc = enc(body.report)
     c.ai_used = c.ai_used or body.ai_used
+    if body.ai_cells is not None:
+        c.ai_cells = max(0, body.ai_cells); c.ai_agree = max(0, min(body.ai_agree or 0, c.ai_cells))
     db.commit()
     audit.log(db, u.id, "case.updated", "case", c.id, {"ai_used": body.ai_used}, client_ip(request))
     return case_out(c, p, True)
@@ -167,3 +171,21 @@ def sign_case(cid: str, request: Request, u: User = Depends(need("cases.sign")),
     db.commit(); _load_names(db)
     audit.log(db, u.id, "case.signed", "case", c.id, {"patient": p.pseudonym, "prepared_by": c.prepared_by}, client_ip(request))
     return case_out(c, p, True)
+
+
+CBC_KEYS = ("hb", "hct", "rbcCount", "mcv", "mch", "mchc", "rdw", "retic", "wbc", "anc", "alc", "amc", "aec", "abc", "plt", "mpv", "pdw")
+
+
+@router.get("/{cid}/previous")
+def previous_cbc(cid: str, request: Request, u: User = Depends(need("cases.read")), db: Session = Depends(get_db)):
+    """Most recent earlier case of the same patient: blood count only, for delta checks."""
+    c, p = _get(db, cid)
+    prev = db.execute(select(Case).where(Case.patient_id == p.id, Case.id != c.id, Case.updated_at <= c.updated_at)
+                      .order_by(Case.updated_at.desc()).limit(1)).scalar_one_or_none()
+    if not prev:
+        return {"found": False}
+    d = dec_json(prev.data_enc) or {}
+    cbc = {k: d[k] for k in CBC_KEYS if d.get(k) not in (None, "")}
+    audit.log(db, u.id, "case.previous_viewed", "case", c.id, {"previous": prev.id}, client_ip(request))
+    return {"found": True, "lab_no": prev.lab_no, "date": prev.signed_at or prev.updated_at, "status": prev.status,
+            "film_reviewed": bool(d.get("pbFilm") or d.get("diffPB") or d.get("cellGallery")), "cbc": cbc}

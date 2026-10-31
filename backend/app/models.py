@@ -117,6 +117,8 @@ class Case(Base):
     report_enc: Mapped[str | None] = mapped_column(Text, nullable=True)     # final report text (encrypted)
     diagnosis: Mapped[str | None] = mapped_column(String(300), nullable=True)
     ai_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    ai_cells: Mapped[int | None] = mapped_column(Integer, nullable=True)        # cells with an AI label (QA: AI-override tracking)
+    ai_agree: Mapped[int | None] = mapped_column(Integer, nullable=True)        # of those, final label = AI label
     status: Mapped[str] = mapped_column(String(12), default="draft")       # draft | prepared | signed
     prepared_by: Mapped[str | None] = mapped_column(String(32), nullable=True)
     prepared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

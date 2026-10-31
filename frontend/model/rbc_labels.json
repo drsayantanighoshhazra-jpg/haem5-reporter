@@ -1,0 +1,47 @@
+{
+  "format": "haem5-rbc-v1",
+  "classes": [
+    "normal",
+    "macrocyte",
+    "microcyte",
+    "spherocyte",
+    "target_cell",
+    "stomatocyte",
+    "ovalocyte",
+    "teardrop",
+    "burr_cell",
+    "schistocyte",
+    "hypochromia",
+    "elliptocyte"
+  ],
+  "img_size": 128,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "input_name": "input",
+  "layout": "NCHW",
+  "crop_rbc_diameters": 2.0,
+  "model": "efficientnet_b0",
+  "trained_on": [
+    "Chula-RBC-12"
+  ],
+  "n_train": 15143,
+  "best_epoch": 21,
+  "test": {
+    "accuracy": 0.8568061284619918,
+    "balanced_accuracy": 0.8758035872787211,
+    "macro_f1": 0.8324148526843542,
+    "kappa": 0.8308904740946196
+  },
+  "test_schistocyte": {
+    "sensitivity": 0.8521739130434782,
+    "ppv": 0.8235294117647058
+  }
+}

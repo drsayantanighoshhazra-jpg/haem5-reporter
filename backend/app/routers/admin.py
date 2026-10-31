@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from .. import audit
 from ..config import settings
 from ..db import get_db
-from ..models import ROLES, Breach, Case, Patient, RightsRequest, User
+from ..models import ROLES, Breach, Case, Patient, RightsRequest, Setting, User
 from ..security import client_ip, current_user, hash_pw, need
 from .privacy import aware, breach_out
 
@@ -81,5 +81,40 @@ def dashboard(u: User = Depends(current_user), db: Session = Depends(get_db)):
         "breaches_open": len(br), "breach_board_overdue": sum(1 for b in br if b["board_overdue"]),
         "next_breach_deadline_h": min([b["hours_to_board_deadline"] for b in br if not b["board_detailed_at"]], default=None),
         "erasures_scheduled": db.scalar(select(func.count()).select_from(Patient).where(Patient.erasure_scheduled_for.is_not(None), Patient.erased_at.is_(None))),
+        "ai_qa": _ai_qa(db),
         "org": {"fiduciary": settings.fiduciary_name, "region": settings.data_region, "demo": settings.demo_mode},
     }
+
+
+def _ai_qa(db: Session) -> dict:
+    """AI-override tracking across authorised reports: how often the pathologist kept the AI's label."""
+    rows = db.execute(select(Case.ai_cells, Case.ai_agree).where(Case.status == "signed", Case.ai_cells.is_not(None), Case.ai_cells > 0)).all()
+    cells = sum(r[0] for r in rows); agree = sum(r[1] or 0 for r in rows)
+    return {"cases": len(rows), "cells": cells, "agree": agree, "agreement": round(agree / cells, 4) if cells else None}
+
+
+# Laboratory-wide CBC reference ranges and critical limits (ISO 15189: one controlled set for the laboratory).
+@router.get("/settings/lab-ranges")
+def get_lab_ranges(u: User = Depends(current_user), db: Session = Depends(get_db)):
+    s = db.get(Setting, "lab_ranges")
+    return {"ranges": s.value if s else None}
+
+
+class RangesIn(BaseModel):
+    ranges: dict | None = None
+
+
+@router.put("/settings/lab-ranges")
+def put_lab_ranges(body: RangesIn, request: Request, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    if u.role not in ("admin", "pathologist"):
+        raise HTTPException(403, "Only a pathologist or administrator can change laboratory reference ranges")
+    s = db.get(Setting, "lab_ranges")
+    if body.ranges is None:
+        if s: db.delete(s)
+    elif s:
+        s.value = body.ranges
+    else:
+        db.add(Setting(key="lab_ranges", value=body.ranges))
+    db.commit()
+    audit.log(db, u.id, "settings.lab_ranges", "setting", "lab_ranges", {"cleared": body.ranges is None}, client_ip(request))
+    return {"ranges": body.ranges}

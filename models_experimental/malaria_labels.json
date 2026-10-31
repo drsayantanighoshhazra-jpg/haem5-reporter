@@ -1,0 +1,35 @@
+{
+  "format": "haem5-malaria-v1",
+  "classes": [
+    "uninfected",
+    "parasitized"
+  ],
+  "img_size": 128,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "input_name": "input",
+  "crop": "single red cell, tight square, circular mask",
+  "threshold": 0.4280017614364624,
+  "model": "efficientnet_b0",
+  "trained_on": [
+    "NIH-NLM malaria cell images (Rajaraman 2018)"
+  ],
+  "split": "by patient 70/15/15",
+  "best_epoch": 8,
+  "test": {
+    "auc": 0.9811266835175614,
+    "accuracy": 0.937702090967881,
+    "sensitivity": 0.9030769230769231,
+    "specificity": 0.9818538499264345,
+    "ppv": 0.9844863731656185,
+    "threshold": 0.4280017614364624
+  }
+}

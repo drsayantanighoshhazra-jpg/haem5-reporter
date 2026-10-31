@@ -98,7 +98,7 @@ async function renderDashboard() {
   const st = (n, l, cls = "") => `<div class="stat ${cls}"><div class="n">${n ?? "—"}</div><div class="l">${l}</div></div>`;
   $("#view").innerHTML = `<h1>Dashboard</h1><p class="lede">Workload and DPDP compliance clocks at a glance.</p>
     <div class="stats">
-      ${st(d.cases_awaiting, "Awaiting authorisation", d.cases_awaiting && can("cases.sign") ? "warnc" : "")}${st(d.patients, "Patients on record")}${st(d.cases_draft, "Draft reports")}${st(d.cases_signed, "Authorised reports")}
+      ${st(d.cases_awaiting, "Awaiting authorisation", d.cases_awaiting && can("cases.sign") ? "warnc" : "")}${st(d.patients, "Patients on record")}${st(d.cases_draft, "Draft reports")}${st(d.cases_signed, "Authorised reports")}${d.ai_qa && d.ai_qa.cells ? st((100 * d.ai_qa.agreement).toFixed(1) + "%", `AI–pathologist agreement (${d.ai_qa.agree}/${d.ai_qa.cells} cells, ${d.ai_qa.cases} reports)`) : ""}
       ${st(d.rights_open, "Open rights requests", d.rights_overdue ? "alert" : d.rights_due_7d ? "warnc" : "")}
       ${st(d.rights_overdue, "Requests past 90 days", d.rights_overdue ? "alert" : "")}
       ${st(d.breaches_open, "Open breaches", d.breaches_open ? "warnc" : "")}

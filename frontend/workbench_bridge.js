@@ -57,6 +57,10 @@
   async function load() {
     try {
       [me, meta] = await Promise.all([api("/api/auth/me"), api(`/api/cases/${caseId}`)]);
+      try { const [pv, lr] = await Promise.all([api(`/api/cases/${caseId}/previous`), api("/api/settings/lab-ranges")]);
+        window.HAEM5_PREVIOUS = pv.found ? pv : null; window.HAEM5_LAB_RANGES = lr.ranges || null;
+        if (["admin", "pathologist"].includes(me.role)) window.HAEM5_SAVE_RANGES = r => api("/api/settings/lab-ranges", { method: "PUT", body: { ranges: r } });
+      } catch (e) { /* optional */ }
       window.HAEM5_AI_ALLOWED = !!meta.permissions.ai_allowed;
       loadCase(Object.assign({ labNo: meta.lab_no, patient: meta.pseudonym }, meta.data || {}), false);
       if (meta.status === "prepared" && canSign()) show("report");
@@ -70,7 +74,9 @@
   async function persist() {
     state.counts = cnt;
     const data = Object.assign({}, state); delete data.patient;
-    meta = await api(`/api/cases/${caseId}`, { method: "PUT", body: { data, diagnosis: state.dx || null, report: reportText(), ai_used: !!state.aiUsed } });
+    delete data._previous;
+    const ag = typeof aiAgreement === "function" ? aiAgreement(state.cellGallery) : { n: 0, agree: 0 };
+    meta = await api(`/api/cases/${caseId}`, { method: "PUT", body: { data, diagnosis: state.dx || null, report: reportText(), ai_used: !!state.aiUsed, ai_cells: ag.n || null, ai_agree: ag.n ? ag.agree : null } });
   }
   async function prepare() {
     if (!state.dx && lastResult && lastResult.candidates.length) {

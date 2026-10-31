@@ -200,3 +200,23 @@ def test_prepare_then_authorise_workflow():
     actions = [a["action"] for a in c.get("/api/audit?limit=50", headers=H(T["dpo"])).json() if a["entity_id"] == cid]
     for a in ("case.prepared", "case.returned", "case.signed"):
         assert a in actions
+
+
+def test_previous_cbc_ai_qa_and_lab_ranges():
+    p = new_patient().json()
+    first = c.post("/api/cases", headers=H(T["technician"]), json={"patient_id": p["id"], "lab_no": "PBS/80", "data": {"hb": 11.2, "plt": 210, "pbFilm": "normal"}}).json()
+    second = c.post("/api/cases", headers=H(T["technician"]), json={"patient_id": p["id"], "lab_no": "PBS/81", "data": {"hb": 8.0}}).json()
+    prev = c.get(f"/api/cases/{second['id']}/previous", headers=H(T["pathologist"])).json()
+    assert prev["found"] and prev["lab_no"] == "PBS/80" and prev["cbc"] == {"hb": 11.2, "plt": 210} and prev["film_reviewed"]
+    assert c.get(f"/api/cases/{first['id']}/previous", headers=H(T["pathologist"])).json()["found"] is False
+    # AI-override tracking reaches the dashboard once the report is signed
+    c.put(f"/api/cases/{second['id']}", headers=H(T["pathologist"]), json={"data": {"hb": 8.0}, "diagnosis": "Anaemia", "report": "text", "ai_used": True, "ai_cells": 100, "ai_agree": 93})
+    c.post(f"/api/cases/{second['id']}/sign", headers=H(T["pathologist"]))
+    qa = c.get("/api/dashboard", headers=H(T["pathologist"])).json()["ai_qa"]
+    assert qa["cells"] >= 100 and 0 < qa["agreement"] <= 1
+    # laboratory ranges: pathologist may set, technician may read but not change
+    rng = {"F": {"hb": [11.5, 15.5]}, "critical": {"hb": [6.5, 20]}}
+    assert c.put("/api/settings/lab-ranges", headers=H(T["technician"]), json={"ranges": rng}).status_code == 403
+    assert c.put("/api/settings/lab-ranges", headers=H(T["pathologist"]), json={"ranges": rng}).status_code == 200
+    assert c.get("/api/settings/lab-ranges", headers=H(T["technician"])).json()["ranges"] == rng
+    assert c.put("/api/settings/lab-ranges", headers=H(T["pathologist"]), json={"ranges": None}).json()["ranges"] is None

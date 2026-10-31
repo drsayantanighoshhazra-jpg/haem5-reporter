@@ -55,10 +55,46 @@
     return { comps, lab };
   }
 
+
+  /* Single red cells for morphology, including cells touching their neighbours: holes (central pallor) are filled,
+     a chamfer distance transform is taken and its peaks are the cell centres. Peak height ≈ cell radius, so
+     fragments (schistocytes) are kept down to ~0.35 diameters. */
+  function findRedCells(pm, w, h, rbcD, wbcF, pad) {
+    const N = w * h, m = pm.slice(), inv = new Uint8Array(N);
+    for (let i = 0; i < N; i++) inv[i] = m[i] ? 0 : 1;
+    const holes = components(inv, w, h), maxHole = 0.6 * Math.PI * rbcD * rbcD / 4;
+    const fill = new Set(holes.comps.filter(c => c.area < maxHole && c.x0 > 0 && c.y0 > 0 && c.x1 < w - 1 && c.y1 < h - 1).map(c => c.id));
+    for (let i = 0; i < N; i++) if (holes.lab[i] >= 0 && fill.has(holes.lab[i])) m[i] = 1;
+    const BIG = 1e9, d = new Float32Array(N);
+    for (let i = 0; i < N; i++) d[i] = m[i] ? BIG : 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (!d[i]) continue;
+      let v = d[i];
+      if (x > 0) v = Math.min(v, d[i - 1] + 1); else v = Math.min(v, 1);
+      if (y > 0) { v = Math.min(v, d[i - w] + 1); if (x > 0) v = Math.min(v, d[i - w - 1] + 1.4142); if (x < w - 1) v = Math.min(v, d[i - w + 1] + 1.4142); } else v = Math.min(v, 1);
+      d[i] = v; }
+    for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) { const i = y * w + x; if (!d[i]) continue;
+      let v = d[i];
+      if (x < w - 1) v = Math.min(v, d[i + 1] + 1); else v = Math.min(v, 1);
+      if (y < h - 1) { v = Math.min(v, d[i + w] + 1); if (x < w - 1) v = Math.min(v, d[i + w + 1] + 1.4142); if (x > 0) v = Math.min(v, d[i + w - 1] + 1.4142); } else v = Math.min(v, 1);
+      d[i] = v; }
+    const minR = 0.17 * rbcD, maxR = 0.75 * rbcD, peaks = [];
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x, v = d[i];
+      if (v < minR || v > maxR) continue;
+      if (v >= d[i - 1] && v >= d[i + 1] && v >= d[i - w] && v >= d[i + w] && v >= d[i - w - 1] && v >= d[i - w + 1] && v >= d[i + w - 1] && v >= d[i + w + 1]) peaks.push([v, x, y]); }
+    peaks.sort((a, b) => b[0] - a[0]);
+    const out = [], edge = 0.45 * rbcD;
+    for (const [r, x, y] of peaks) {
+      if (out.some(c => Math.hypot(c.cx - x, c.cy - y) < Math.max(0.55 * rbcD, (c.d / 2 + r) * 0.75))) continue;
+      out.push({ cx: x, cy: y, d: Math.round(2 * r) });
+    }
+    return out.filter(c => c.cx > edge && c.cy > edge && c.cx < w - edge && c.cy < h - edge &&
+      !wbcF.some(k => c.cx > k.x0 - pad && c.cx < k.x1 + pad && c.cy > k.y0 - pad && c.cy < k.y1 + pad));
+  }
+
   /**
    * @param {Uint8ClampedArray|Uint8Array} rgba  pixels (already downscaled; ~800–1600 px wide is ideal)
    * @returns {{wbc: Array<{cx:number, cy:number, size:number, x0:number,y0:number,x1:number,y1:number, area:number, touchesEdge:boolean}>,
-   *           platelets:number, rbc:number, rbcDiameter:number, nucleusThreshold:number}}
+   *           platelets:number, rbc:number, rbcCells:Array<{cx:number,cy:number,d:number}>, rbcDiameter:number, nucleusThreshold:number}}
    */
   function detect(rgba, w, h, opts = {}) {
     const N = w * h, score = new Uint8Array(N), bright = new Uint8Array(N);
@@ -109,9 +145,32 @@
     const rbcCount = pinkC.reduce((n, c) => { const d = ((c.x1 - c.x0) + (c.y1 - c.y0)) / 2; return n + (d < 0.6 * rbcD ? 0 : Math.max(1, Math.round((d / rbcD) ** 2 * 0.8))); }, 0);
     const pad = rbcD * 0.8;
     const platelets = pltCand.filter(p => !wbcF.some(c => p.cx > c.x0 - pad && p.cx < c.x1 + pad && p.cy > c.y0 - pad && p.cy < c.y1 + pad)).length;
-    return { wbc: wbcF, platelets, rbc: rbcCount, rbcDiameter: rbcD, nucleusThreshold: thr };
+    const rbcCells = findRedCells(pm, w, h, rbcD, wbcF, pad);
+    return { wbc: wbcF, platelets, rbc: rbcCount, rbcCells, rbcDiameter: rbcD, nucleusThreshold: thr };
   }
 
-  const API = { detect };
+
+  /* Photo quality: focus (variance of the Laplacian on a 800-px greyscale copy, normalised by contrast so that
+     pale and dense fields compare fairly), exposure (mean brightness) and clipping (share of near-white pixels). */
+  function quality(rgba, w, h) {
+    const sc = Math.min(1, 800 / Math.max(w, h)), W = Math.max(8, Math.round(w * sc)), H = Math.max(8, Math.round(h * sc));
+    const g = new Float32Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = 4 * (Math.min(h - 1, Math.floor(y / sc)) * w + Math.min(w - 1, Math.floor(x / sc)));
+      g[y * W + x] = 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2];
+    }
+    let s = 0, s2 = 0, n = 0, m = 0, clip = 0, dark = 0;
+    for (let i = 0; i < W * H; i++) { m += g[i]; if (g[i] > 250) clip++; if (g[i] < 40) dark++; }
+    m /= W * H;
+    let sd = 0; for (let i = 0; i < W * H; i++) sd += (g[i] - m) ** 2; sd = Math.sqrt(sd / (W * H)) || 1;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x, l = g[i - 1] + g[i + 1] + g[i - W] + g[i + W] - 4 * g[i];
+      s += l; s2 += l * l; n++;
+    }
+    const lapVar = s2 / n - (s / n) ** 2;
+    return { focus: lapVar / (sd * sd), brightness: m, clipped: clip / (W * H), dark: dark / (W * H) };
+  }
+
+  const API = { detect, quality };
   if (typeof module !== "undefined" && module.exports) module.exports = API; else root.HAEM5DETECT = API;
 })(typeof window !== "undefined" ? window : globalThis);
